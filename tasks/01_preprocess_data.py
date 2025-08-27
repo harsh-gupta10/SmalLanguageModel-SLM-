@@ -1,98 +1,169 @@
 # tasks/01_preprocess_data.py
 
 import os
-from datasets import load_dataset
+import json
+import random
+import ftfy
+import regex as re
+import sentencepiece as spm
+from tqdm import tqdm
+from multiprocessing import Pool, cpu_count
 
-RAW_DATA_DIR = "data/raw"
+# --- Configuration ---
+RAW_DATA_DIR = 'data/raw'
+PROCESSED_DATA_DIR = 'data/processed'
+TOKENIZER_MODEL = 'model/tokenizer/multilingual_spm.model'
 
-os.makedirs(RAW_DATA_DIR, exist_ok=True)
+# Define the language files and their keys
+LANG_FILES = {
+    'english': 'lang_english.txt',
+    'hindi': 'lang_hindi.txt',
+    'sanskrit': 'lang_sanskrit.txt'
+}
 
-def collect_english_data():
-    """Downloads English data from the original FineWeb dataset."""
-    output_path = os.path.join(RAW_DATA_DIR, "lang_english.txt")
-    target_size_gb = 6.5  # Target for ~1.5 billion tokens (50%)
+# Define the train, validation, and test split ratios
+VALIDATION_SPLIT = 0.01
+TEST_SPLIT = 0.01
 
-    if os.path.exists(output_path) and os.path.getsize(output_path) > 1024:
-        print(f"'{output_path}' already exists. Skipping download.")
-        return
+def clean_text(text: str) -> str:
+    """
+    Applies basic text cleaning to a single line of text.
+    - Fixes unicode errors with ftfy.
+    - Normalizes whitespace.
+    - Strips leading/trailing whitespace.
+    """
+    # Fix unicode encoding and mojibake
+    text = ftfy.fix_text(text)
+    # Replace multiple whitespace characters with a single space
+    text = re.sub(r'\s+', ' ', text)
+    return text.strip()
 
-    print("--- Starting English Data Collection ---")
-    try:
-        dataset = load_dataset("HuggingFaceFW/fineweb", name="sample-10BT", split="train", streaming=True)
-        print(f"Streaming English data to '{output_path}'...")
-        
-        with open(output_path, "w", encoding="utf-8") as f:
-            for example in dataset:
-                f.write(example['text'] + "\n")
-                if os.path.getsize(output_path) / (1024**3) >= target_size_gb:
-                    print(f"Reached target size of {target_size_gb:.2f} GB. Stopping.")
-                    break
-        print("--- Finished English Data Collection ---")
-    except Exception as e:
-        print(f"Could not download English data. Error: {e}")
+def process_file(filepath: str) -> set:
+    """
+    Reads a file, cleans its lines, and returns a set of unique, non-empty lines.
+    Using a set handles deduplication within the file itself.
+    """
+    unique_lines = set()
+    print(f"Processing file: {os.path.basename(filepath)}...")
+    with open(filepath, 'r', encoding='utf-8') as f:
+        for line in tqdm(f):
+            cleaned = clean_text(line)
+            if cleaned:  # Ensure the line is not empty after cleaning
+                unique_lines.add(cleaned)
+    return unique_lines
 
-def collect_hindi_data():
-    """Downloads Hindi data from the FineWeb-2 dataset."""
-    output_path = os.path.join(RAW_DATA_DIR, "lang_hindi.txt")
-    target_size_gb = 4.5  # Target for ~1.2 billion tokens (40%)
-
-    if os.path.exists(output_path) and os.path.getsize(output_path) > 1024:
-        print(f"'{output_path}' already exists. Skipping download.")
-        return
-
-    print("--- Starting Hindi Data Collection ---")
-    try:
-        dataset = load_dataset("HuggingFaceFW/fineweb-2", name="hin_Deva", split="train", streaming=True)
-        print(f"Streaming Hindi data to '{output_path}'...")
-        
-        with open(output_path, "w", encoding="utf-8") as f:
-            for example in dataset:
-                f.write(example['text'] + "\n")
-                if os.path.getsize(output_path) / (1024**3) >= target_size_gb:
-                    print(f"Reached target size of {target_size_gb:.2f} GB. Stopping.")
-                    break
-        print("--- Finished Hindi Data Collection ---")
-    except Exception as e:
-        print(f"Could not download Hindi data. Error: {e}")
-
-def collect_sanskrit_data():
-    """Downloads Sanskrit data from the ai4bharat/sangraha dataset."""
-    output_path = os.path.join(RAW_DATA_DIR, "lang_sanskrit.txt")
-    target_size_gb = 1.5 # Target for ~300 million tokens (10%)
-
-    if os.path.exists(output_path) and os.path.getsize(output_path) > 1024:
-        print(f"'{output_path}' already exists. Skipping Sanskrit download.")
-        return
-
-    print("--- Starting Sanskrit Data Collection ---")
-    try:
-        # CORRECTED: Use data_files to point to the exact files within the repository.
-        # The 'name' parameter is not needed here.
-        dataset = load_dataset(
-            "ai4bharat/sangraha",
-            data_files="verified/san/*.parquet",
-            split="train",
-            streaming=True
-        )
-        print(f"Streaming Sanskrit data to '{output_path}'...")
-
-        with open(output_path, "w", encoding="utf-8") as f:
-            for example in dataset:
-                f.write(example['text'] + "\n")
-                if os.path.getsize(output_path) / (1024**3) >= target_size_gb:
-                    print(f"Reached target size of {target_size_gb:.2f} GB. Stopping.")
-                    break
-
-        print("--- Finished Sanskrit Data Collection ---")
-    except Exception as e:
-        print(f"Could not download Sanskrit data. Error: {e}")
-
-if __name__ == "__main__":
-    print("Starting raw data collection process...")
+def calculate_token_stats():
+    """
+    Loads the trained tokenizer and calculates the token count and percentage for each language.
+    """
+    print("\n--- Calculating Token Statistics ---")
     
-    collect_english_data()
-    # collect_hindi_data()
-    # collect_sanskrit_data()
+    if not os.path.exists(TOKENIZER_MODEL):
+        print(f"Error: Tokenizer model not found at {TOKENIZER_MODEL}")
+        return
+
+    # Load the tokenizer
+    sp = spm.SentencePieceProcessor()
+    sp.load(TOKENIZER_MODEL)
     
-    print("\nRaw data collection for all languages is complete.")
-    print(f"Data saved in: '{RAW_DATA_DIR}'")
+    stats = {}
+    total_tokens = 0
+
+    # Calculate tokens for each language file
+    for lang, filename in LANG_FILES.items():
+        filepath = os.path.join(RAW_DATA_DIR, filename)
+        print(f"Counting tokens in {filename}...")
+        lang_token_count = 0
+        with open(filepath, 'r', encoding='utf-8') as f:
+            # Reading in chunks for memory efficiency with large files
+            for line in tqdm(f):
+                lang_token_count += len(sp.encode_as_ids(line))
+        stats[lang] = {'token_count': lang_token_count}
+        total_tokens += lang_token_count
+
+    stats['total_tokens'] = total_tokens
+    
+    # Calculate percentages
+    if total_tokens > 0:
+        for lang in LANG_FILES.keys():
+            percentage = (stats[lang]['token_count'] / total_tokens) * 100
+            stats[lang]['percentage'] = round(percentage, 2)
+
+    # Print and save the report
+    print("\n--- Token Statistics Report ---")
+    print(json.dumps(stats, indent=4))
+    
+    report_path = os.path.join(PROCESSED_DATA_DIR, 'token_statistics.json')
+    with open(report_path, 'w', encoding='utf-8') as f:
+        json.dump(stats, f, indent=4)
+    print(f"\nStatistics report saved to {report_path}")
+
+
+def main():
+    """
+    Main function to orchestrate the preprocessing workflow.
+    """
+    print("--- Starting Phase 1: Data Preprocessing ---")
+
+    # Ensure the processed data directory exists
+    os.makedirs(PROCESSED_DATA_DIR, exist_ok=True)
+    
+    # --- 1. Clean and Deduplicate Data in Parallel ---
+    filepaths = [os.path.join(RAW_DATA_DIR, fname) for fname in LANG_FILES.values()]
+    
+    # Use a multiprocessing Pool to process files concurrently
+    num_procs = min(len(filepaths), cpu_count())
+    print(f"\nStarting file processing with {num_procs} processes...")
+    with Pool(processes=num_procs) as pool:
+        # pool.map will return a list of sets (one for each file)
+        list_of_sets = pool.map(process_file, filepaths)
+
+    # Combine all sets into one master set for global deduplication
+    print("\nCombining and performing global deduplication...")
+    all_unique_lines = set().union(*list_of_sets)
+    
+    # Convert set to list for shuffling and splitting
+    all_lines = list(all_unique_lines)
+    print(f"Total unique lines after global deduplication: {len(all_lines):,}")
+
+    # --- 2. Shuffle and Split Data ---
+    print("\nShuffling data...")
+    random.shuffle(all_lines)
+    
+    # Calculate split indices
+    total_size = len(all_lines)
+    test_idx = int(total_size * TEST_SPLIT)
+    val_idx = int(total_size * (VALIDATION_SPLIT + TEST_SPLIT))
+    
+    test_set = all_lines[:test_idx]
+    validation_set = all_lines[test_idx:val_idx]
+    train_set = all_lines[val_idx:]
+
+    print(f"Train set size:      {len(train_set):,}")
+    print(f"Validation set size: {len(validation_set):,}")
+    print(f"Test set size:       {len(test_set):,}")
+
+    # --- 3. Write Processed Files ---
+    print("\nWriting processed files to disk...")
+    
+    splits = {
+        'train.txt': train_set,
+        'validation.txt': validation_set,
+        'test.txt': test_set
+    }
+    
+    for filename, dataset in splits.items():
+        filepath = os.path.join(PROCESSED_DATA_DIR, filename)
+        with open(filepath, 'w', encoding='utf-8') as f:
+            for line in tqdm(dataset, desc=f"Writing {filename}"):
+                f.write(line + '\n')
+    
+    print("\n--- Preprocessing complete! ---")
+
+    # --- 4. Calculate Token Statistics ---
+    # This is done last as it's a reporting step.
+    calculate_token_stats()
+
+
+if __name__ == '__main__':
+    main()
