@@ -1,0 +1,20 @@
+{
+    "english": {
+        "total_tokens_sampled": 22472682,
+        "unknown_tokens_found": 150,
+        "unknown_token_rate_%": 0.0007,
+        "token_coverage_%": 99.9993
+    },
+    "hindi": {
+        "total_tokens_sampled": 28384828,
+        "unknown_tokens_found": 63,
+        "unknown_token_rate_%": 0.0002,
+        "token_coverage_%": 99.9998
+    },
+    "sanskrit": {
+        "total_tokens_sampled": 50762617,
+        "unknown_tokens_found": 18,
+        "unknown_token_rate_%": 0.0,
+        "token_coverage_%": 100.0
+    }
+}
