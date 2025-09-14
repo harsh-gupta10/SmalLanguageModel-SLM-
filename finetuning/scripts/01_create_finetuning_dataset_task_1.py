@@ -9,8 +9,7 @@ from google.genai import types # Import types for Content, Part, etc.
 
 # --- Configuration ---
 OUTPUT_FILE = "gemini_decontextualization_dataset.jsonl"
-# MODEL_NAME = "gemini-2.5-flash" # As in your example, but this name is often internal or future.
-MODEL_NAME = "gemini-1.5-flash" # A widely available and capable model. You can change to "gemini-1.5-pro" if preferred.
+MODEL_NAME = "gemini-2.5-flash" # As in your example, but this name is often internal or future.
 # Note: If you specifically want to use "gemini-pro" as your original error suggested,
 # you might need to check your project's region/permissions or use 'google.generativeai'.
 # However, this script is tailored to the `google.genai` client shown in your example.
