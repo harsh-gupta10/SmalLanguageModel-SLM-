@@ -11,13 +11,13 @@ import random # For sampling
 
 # --- Configuration ---
 RAW_DATA_DIR = 'data/raw'
-TOKENIZER_MODEL_PATH = 'model/tokenizer/multilingual_spm.model'
+TOKENIZER_MODEL_PATH = 'model/tokenizer/multilingual_spm.model' # Still points to the raw .model file
 TEACHER_MODEL_PATH = 'model/teacher/' # Path to your downloaded Qwen3-0.6B
 OUTPUT_DATA_DIR = 'data/processed/'
-MAX_SEQUENCE_LENGTH = 64 # Keep this reduced (consider 256 if needed)
+MAX_SEQUENCE_LENGTH = 128 # Keep this reduced (consider 256 if needed)
 
 # --- Sampling Parameters ---
-SAMPLE_PROBABILITY = 0.001 # <--- *** Adjust this for your target dataset size ***
+SAMPLE_PROBABILITY = 0.01
 
 # --- Batching Parameters ---
 BATCH_SIZE_TEACHER_INFERENCE = 8 # *** Increased for better GPU utilization *** (Try 16 if VRAM allows, but carefully)
@@ -52,6 +52,7 @@ def raw_text_generator_with_sampling(raw_data_dir, input_file_names, sample_prob
                 if random.random() < sample_probability:
                     line = line.strip()
                     if line:
+                        # Prepend the language token to the sentence before encoding
                         yield f"{lang_token} {line}"
                         
 # --- Iterable Dataset for Teacher Inference ---
@@ -64,14 +65,15 @@ class InferenceIterableDataset(IterableDataset):
 
     def __iter__(self):
         for text in self.raw_text_gen:
-            token_ids = self.sp.encode(text)
+            # SentencePiece will tokenize '<en> This is...' correctly, including user-defined symbols.
+            token_ids = self.sp.encode(text) 
             if len(token_ids) > self.max_seq_len:
                 token_ids = token_ids[:self.max_seq_len]
             self.estimated_total_sampled += 1
             yield torch.tensor(token_ids, dtype=torch.long)
             
 def prepare_distillation_data():
-    print("Loading custom tokenizer...")
+    print("Loading custom tokenizer (SentencePiece Processor)...")
     sp = spm.SentencePieceProcessor()
     sp.load(TOKENIZER_MODEL_PATH)
 
@@ -137,7 +139,8 @@ def prepare_distillation_data():
 
         teacher_model = AutoModelForCausalLM.from_pretrained(
             TEACHER_MODEL_PATH,
-            torch_dtype=teacher_dtype
+            torch_dtype=teacher_dtype,
+            trust_remote_code=True # Added for consistency with pretrain_model.py for Qwen models
         )
     except Exception as e:
         print(f"Error loading teacher model from {TEACHER_MODEL_PATH}: {e}")
@@ -160,7 +163,7 @@ def prepare_distillation_data():
     
     # Ensure at least one batch is saved at a time.
     # batches_per_save = max(1, max_sequences_in_ram // BATCH_SIZE_TEACHER_INFERENCE)
-    batches_per_save = 10
+    batches_per_save = 10 # Retaining your fixed value.
 
     
     print(f"Calculated logit size per sequence (float32): {logit_size_per_sequence_float32_MB:.2f} MB")

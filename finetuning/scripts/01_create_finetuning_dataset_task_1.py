@@ -142,7 +142,8 @@ def generate_dataset_with_gemini_and_review(client: genai.Client, topic: str, nu
         print(f"Gemini's Suggested Fact: {suggested_fact}")
 
         decontextualized_fact = ""
-        review_choice = input("Accept (Y/n/edit)? [Y]: ").strip().lower()
+        # review_choice = input("Accept (Y/n/edit)? [Y]: ").strip().lower()
+        review_choice = 'Y'
 
         if review_choice == 'n':
             while not decontextualized_fact:

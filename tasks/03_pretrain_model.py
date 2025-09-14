@@ -9,7 +9,7 @@ from transformers import (
     AutoConfig,
     AutoModelForCausalLM,
     AutoTokenizer,
-    LlamaTokenizer, # Use LlamaTokenizer as the bridge for SentencePiece
+    # LlamaTokenizer, # Removed: No longer needed as a bridge
     Trainer,
     TrainingArguments,
     DataCollatorForLanguageModeling,
@@ -86,38 +86,26 @@ def main():
 
     # --- 1. Load Custom Tokenizer ---
     logger.info(f"Loading tokenizer from directory: {TOKENIZER_DIR}")
-    tokenizer_model_path = TOKENIZER_DIR / "multilingual_spm.model"
-    hf_tokenizer_config = TOKENIZER_DIR / "tokenizer.json"
-
-    if not hf_tokenizer_config.exists():
-        logger.info("Hugging Face tokenizer config not found. Converting from SentencePiece model...")
-        if not tokenizer_model_path.exists():
-            raise FileNotFoundError(
-                f"Tokenizer model not found at {tokenizer_model_path}. "
-                "Please run 02_train_tokeniser.py first."
-            )
-        tokenizer = LlamaTokenizer(vocab_file=str(tokenizer_model_path))
-        tokenizer.pad_token = tokenizer.convert_ids_to_tokens(0)
-        tokenizer.unk_token = tokenizer.convert_ids_to_tokens(1)
-        tokenizer.bos_token = tokenizer.convert_ids_to_tokens(2)
-        tokenizer.eos_token = tokenizer.convert_ids_to_tokens(3)
-        tokenizer.save_pretrained(str(TOKENIZER_DIR))
-        logger.info(f"Tokenizer converted and saved in Hugging Face format to {TOKENIZER_DIR}")
-    else:
-        logger.info("Found existing Hugging Face tokenizer config. Loading with AutoTokenizer.")
-
-    tokenizer = AutoTokenizer.from_pretrained(str(TOKENIZER_DIR), trust_remote_code=True)
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
-        logger.info(f"Set tokenizer pad_token to eos_token: '{tokenizer.eos_token}'")
-    logger.info(f"Tokenizer loaded successfully. Vocab size: {tokenizer.vocab_size}")
+    
+    # The tokenizer should now be directly loadable as a Hugging Face tokenizer
+    # after running 02_train_tokeniser.py successfully.
+    try:
+        tokenizer = AutoTokenizer.from_pretrained(str(TOKENIZER_DIR), trust_remote_code=True)
+        if tokenizer.pad_token is None:
+            tokenizer.pad_token = tokenizer.eos_token
+            logger.info(f"Set tokenizer pad_token to eos_token: '{tokenizer.eos_token}'")
+        logger.info(f"Tokenizer loaded successfully. Vocab size: {tokenizer.vocab_size}")
+    except Exception as e:
+        logger.error(f"Error loading tokenizer from {TOKENIZER_DIR}. Please ensure 02_train_tokeniser.py "
+                     f"has been run successfully to create Hugging Face compatible tokenizer files. Error: {e}")
+        raise
 
     # --- 2. Configure and Initialize Model ---
     logger.info("Configuring and initializing Qwen3 model from scratch.")
     config = AutoConfig.from_pretrained(
-        "Qwen/Qwen3-0.6B-Base", # <<< THIS LINE IS THE FIX
+        "Qwen/Qwen3-0.6B-Base",
         **MODEL_CONFIG,
-        vocab_size=len(tokenizer),
+        vocab_size=len(tokenizer), # Ensure model vocab size matches the trained tokenizer
         pad_token_id=tokenizer.pad_token_id,
         eos_token_id=tokenizer.eos_token_id,
         bos_token_id=tokenizer.bos_token_id,

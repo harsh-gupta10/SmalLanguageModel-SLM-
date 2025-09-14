@@ -1,0 +1,20 @@
+Like the following sentences, generate a sentence and , extract a single, standalone, atomic fact. Resolve any pronouns and make sure the fact is understandable on its own. Ensure the fact is concise and directly stated or clearly implied.
+
+The task is fact decontextualisation: Decontextualisation is the act of removing something (like a text, image, or concept) from its original context, which gives it its original meaning or significance. While it can be seen as a pejorative practice that distorts meaning, it is also a fundamental psychological process for developing abstract thought and a useful cognitive strategy for reducing biases and improving critical thinking. 
+
+    Sentence: "CEO John Smith announced record profits at the meeting."
+    Fact: John Smith is a CEO.
+
+    Sentence: "Despite the rain, the marathon continued, and she finished first."
+    Fact: The marathon continued.
+
+    Sentence: "The company's new product, launched last week, has already garnered significant attention."
+    Fact: The company launched a new product.
+
+    Sentence: "The ancient city, founded in 300 BC, is a popular tourist destination."
+    Fact: The ancient city was founded in 300 BC.
+
+    Sentence: "{sentence}"
+    Fact:
+
+Generate about 200 such sentences in a jsonl format
