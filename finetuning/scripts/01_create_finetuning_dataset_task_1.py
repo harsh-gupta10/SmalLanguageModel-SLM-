@@ -113,8 +113,8 @@ def generate_dataset_with_gemini(model, topic: str, num_sentences: int, output_f
 
     print(f"\n--- Reviewing and decontextualizing {len(input_sentences)} sentences ---")
 
-    for i, sentence in enumerate(input_sentences):
-        print(f"\n--- Processing Sentence {i + 1}/{len(input_sentences)} ---")
+    for i, sentence in enumerate(input_sentences, start=1):
+        print(f"\n--- Processing Sentence {i}/{len(input_sentences)} ---")
         print(f"Original: {sentence}")
 
         suggested_fact = generate_fact_with_gemini(model, sentence)
@@ -129,10 +129,10 @@ def generate_dataset_with_gemini(model, topic: str, num_sentences: int, output_f
                 if not decontextualized_fact:
                     print("Fact cannot be empty. Please enter a fact.")
         elif review_choice == 'edit':
-             decontextualized_fact = input(f"Edit fact [{suggested_fact}]: ").strip()
-             if not decontextualized_fact: # If user just pressed enter, use suggested
-                 decontextualized_fact = suggested_fact
-        else: # Default to 'y' or empty input
+            decontextualized_fact = input(f"Edit fact [{suggested_fact}]: ").strip()
+            if not decontextualized_fact:  # If user just pressed enter, use suggested
+                decontextualized_fact = suggested_fact
+        else:  # Default to 'y' or empty input
             decontextualized_fact = suggested_fact
 
         dataset.append({
@@ -140,11 +140,21 @@ def generate_dataset_with_gemini(model, topic: str, num_sentences: int, output_f
             "output": decontextualized_fact
         })
 
-    with open(output_file, 'w', encoding='utf-8') as f:
-        for entry in dataset:
-            f.write(json.dumps(entry, ensure_ascii=False) + '\n')
+        # --- Save every 50 sentences ---
+        if i % 50 == 0:
+            with open(output_file, 'a', encoding='utf-8') as f:
+                for entry in dataset:
+                    f.write(json.dumps(entry, ensure_ascii=False) + '\n')
+            print(f"Progress saved at {i} sentences.")
+            dataset = []
 
-    print(f"\nDataset generation complete. Saved {len(dataset)} entries to '{output_file}'")
+    # --- Save any remaining entries ---
+    if dataset:
+        with open(output_file, 'a', encoding='utf-8') as f:
+            for entry in dataset:
+                f.write(json.dumps(entry, ensure_ascii=False) + '\n')
+
+    print(f"\nDataset generation complete. Saved all entries to '{output_file}'")
 
 if __name__ == "__main__":
     gemini_api_key = configure_gemini_api()
