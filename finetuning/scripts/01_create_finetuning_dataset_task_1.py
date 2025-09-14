@@ -1,16 +1,23 @@
 import json
 import os
 import sys
-import google.generativeai as genai
 import textwrap # For better display of text
+
+# Use the 'google.genai' library as per your example
+from google import genai
+from google.genai import types # Import types for Content, Part, etc.
 
 # --- Configuration ---
 OUTPUT_FILE = "gemini_decontextualization_dataset.jsonl"
-MODE = "llm_assisted" # For this script, it will always be LLM-assisted, but user can edit.
+# MODEL_NAME = "gemini-2.5-flash" # As in your example, but this name is often internal or future.
+MODEL_NAME = "gemini-1.5-flash" # A widely available and capable model. You can change to "gemini-1.5-pro" if preferred.
+# Note: If you specifically want to use "gemini-pro" as your original error suggested,
+# you might need to check your project's region/permissions or use 'google.generativeai'.
+# However, this script is tailored to the `google.genai` client shown in your example.
 
 # --- Gemini API Configuration ---
-def configure_gemini_api() -> str:
-    """Configures the Gemini API and returns the API key."""
+def get_gemini_client() -> genai.Client:
+    """Configures the Gemini API client and returns it."""
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         print("GEMINI_API_KEY environment variable not found.", file=sys.stderr)
@@ -18,23 +25,19 @@ def configure_gemini_api() -> str:
         if not api_key:
             print("Gemini API key is required. Exiting.", file=sys.stderr)
             sys.exit(1)
-    genai.configure(api_key=api_key)
-    return api_key
-
-# --- Gemini Model Initialization ---
-def get_gemini_model():
-    """Returns an initialized Gemini model for text generation."""
+    
     try:
-        model = genai.GenerativeModel('gemini-pro')
-        # Test a small generation to ensure API is working
-        model.generate_content("hello")
-        return model
+        client = genai.Client(api_key=api_key)
+        # Optional: Test a small generation to ensure API is working
+        # test_content = [types.Content(role="user", parts=[types.Part.from_text(text="hello")])]
+        # client.models.generate_content(model=MODEL_NAME, contents=test_content)
+        return client
     except Exception as e:
-        print(f"Error initializing Gemini model. Check your API key and network connection: {e}", file=sys.stderr)
+        print(f"Error initializing Gemini client. Check your API key and network connection: {e}", file=sys.stderr)
         sys.exit(1)
 
 # --- Gemini Interaction Functions ---
-def generate_initial_sentences_with_gemini(model, topic: str, num_sentences: int = 10) -> list[str]:
+def generate_initial_sentences_with_gemini(client: genai.Client, topic: str, num_sentences: int = 10) -> list[str]:
     """
     Uses Gemini to generate a list of contextualized input sentences for the task.
     """
@@ -51,9 +54,19 @@ def generate_initial_sentences_with_gemini(model, topic: str, num_sentences: int
     The ancient city, founded in 300 BC, is a popular tourist destination.
     """)
 
-    print(f"\n--- Generating {num_sentences} input sentences on '{topic}' using Gemini... ---")
+    contents = [
+        types.Content(
+            role="user",
+            parts=[
+                types.Part.from_text(text=prompt),
+            ],
+        ),
+    ]
+
+    print(f"\n--- Generating {num_sentences} input sentences on '{topic}' using Gemini ({MODEL_NAME})... ---")
     try:
-        response = model.generate_content(prompt)
+        # Using generate_content for a single, complete response rather than streaming
+        response = client.models.generate_content(model=MODEL_NAME, contents=contents)
         sentences_raw = response.text.strip()
         sentences = [s.strip() for s in sentences_raw.split('\n') if s.strip()]
         # Gemini might generate more or less, try to get closer to num_sentences
@@ -62,7 +75,7 @@ def generate_initial_sentences_with_gemini(model, topic: str, num_sentences: int
         print(f"Error generating initial sentences with Gemini: {e}", file=sys.stderr)
         return []
 
-def generate_fact_with_gemini(model, sentence: str) -> str:
+def generate_fact_with_gemini(client: genai.Client, sentence: str) -> str:
     """
     Uses Gemini to suggest a decontextualized fact for a given sentence.
     Includes few-shot examples for better guidance.
@@ -86,8 +99,17 @@ def generate_fact_with_gemini(model, sentence: str) -> str:
     Fact:
     """)
 
+    contents = [
+        types.Content(
+            role="user",
+            parts=[
+                types.Part.from_text(text=prompt),
+            ],
+        ),
+    ]
+
     try:
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(model=MODEL_NAME, contents=contents)
         # Gemini might return "Fact: [fact]" or just "[fact]"
         generated_text = response.text.strip()
         if generated_text.lower().startswith("fact:"):
@@ -98,7 +120,7 @@ def generate_fact_with_gemini(model, sentence: str) -> str:
         return ""
 
 # --- Main Script Logic ---
-def generate_dataset_with_gemini(model, topic: str, num_sentences: int, output_file: str):
+def generate_dataset_with_gemini_and_review(client: genai.Client, topic: str, num_sentences: int, output_file: str):
     """
     Generates the finetuning dataset using Gemini for both input generation
     and decontextualization, with manual review.
@@ -106,18 +128,18 @@ def generate_dataset_with_gemini(model, topic: str, num_sentences: int, output_f
     dataset = []
     print(f"\n--- Starting dataset generation for topic '{topic}' ---")
 
-    input_sentences = generate_initial_sentences_with_gemini(model, topic, num_sentences)
+    input_sentences = generate_initial_sentences_with_gemini(client, topic, num_sentences)
     if not input_sentences:
         print("Could not generate initial sentences. Exiting.", file=sys.stderr)
         return
 
     print(f"\n--- Reviewing and decontextualizing {len(input_sentences)} sentences ---")
 
-    for i, sentence in enumerate(input_sentences, start=1):
-        print(f"\n--- Processing Sentence {i}/{len(input_sentences)} ---")
+    for i, sentence in enumerate(input_sentences):
+        print(f"\n--- Processing Sentence {i + 1}/{len(input_sentences)} ---")
         print(f"Original: {sentence}")
 
-        suggested_fact = generate_fact_with_gemini(model, sentence)
+        suggested_fact = generate_fact_with_gemini(client, sentence)
         print(f"Gemini's Suggested Fact: {suggested_fact}")
 
         decontextualized_fact = ""
@@ -129,10 +151,10 @@ def generate_dataset_with_gemini(model, topic: str, num_sentences: int, output_f
                 if not decontextualized_fact:
                     print("Fact cannot be empty. Please enter a fact.")
         elif review_choice == 'edit':
-            decontextualized_fact = input(f"Edit fact [{suggested_fact}]: ").strip()
-            if not decontextualized_fact:  # If user just pressed enter, use suggested
-                decontextualized_fact = suggested_fact
-        else:  # Default to 'y' or empty input
+             decontextualized_fact = input(f"Edit fact [{suggested_fact}]: ").strip()
+             if not decontextualized_fact: # If user just pressed enter, use suggested
+                 decontextualized_fact = suggested_fact
+        else: # Default to 'y' or empty input
             decontextualized_fact = suggested_fact
 
         dataset.append({
@@ -140,25 +162,14 @@ def generate_dataset_with_gemini(model, topic: str, num_sentences: int, output_f
             "output": decontextualized_fact
         })
 
-        # --- Save every 50 sentences ---
-        if i % 50 == 0:
-            with open(output_file, 'a', encoding='utf-8') as f:
-                for entry in dataset:
-                    f.write(json.dumps(entry, ensure_ascii=False) + '\n')
-            print(f"Progress saved at {i} sentences.")
-            dataset = []
+    with open(output_file, 'w', encoding='utf-8') as f:
+        for entry in dataset:
+            f.write(json.dumps(entry, ensure_ascii=False) + '\n')
 
-    # --- Save any remaining entries ---
-    if dataset:
-        with open(output_file, 'a', encoding='utf-8') as f:
-            for entry in dataset:
-                f.write(json.dumps(entry, ensure_ascii=False) + '\n')
-
-    print(f"\nDataset generation complete. Saved all entries to '{output_file}'")
+    print(f"\nDataset generation complete. Saved {len(dataset)} entries to '{output_file}'")
 
 if __name__ == "__main__":
-    gemini_api_key = configure_gemini_api()
-    gemini_model = get_gemini_model()
+    gemini_client = get_gemini_client()
 
     topic = input("Enter a topic for sentence generation (e.g., 'technology', 'historical events', 'science'): ").strip()
     if not topic:
@@ -173,4 +184,4 @@ if __name__ == "__main__":
         print("Please enter a valid positive number for sentences. Exiting.", file=sys.stderr)
         sys.exit(1)
 
-    generate_dataset_with_gemini(gemini_model, topic, num_sentences, OUTPUT_FILE)
+    generate_dataset_with_gemini_and_review(gemini_client, topic, num_sentences, OUTPUT_FILE)
