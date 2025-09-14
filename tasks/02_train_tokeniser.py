@@ -27,7 +27,7 @@ def train_sentencepiece_tokenizer():
     os.makedirs(model_dir, exist_ok=True)
 
     model_prefix = os.path.join(model_dir, 'multilingual_spm')
-    vocab_size = 32000
+    vocab_size = 320003
     character_coverage = 1.0
     model_type = 'bpe'
     
@@ -44,7 +44,9 @@ def train_sentencepiece_tokenizer():
         f'--shuffle_input_sentence={shuffle_input_sentence} '
         f'--num_threads={num_threads} '
         '--pad_id=0 --unk_id=1 --bos_id=2 --eos_id=3 '
+        '--user_defined_symbols=<en>,<hi>,<sa>'
     )
+
 
     try:
         print("\nStarting SentencePiece training process. This may take a while...")
