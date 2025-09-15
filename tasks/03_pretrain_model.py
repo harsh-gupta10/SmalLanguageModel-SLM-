@@ -46,6 +46,7 @@ MODEL_CONFIG = {
 }
 
 # 3. Training Hyperparameters
+# 3. Training Hyperparameters
 TRAINING_ARGS = {
     "output_dir": str(PRETRAINED_CHECKPOINTS_DIR),
     "logging_dir": str(LOG_DIR),
@@ -55,9 +56,9 @@ TRAINING_ARGS = {
     "per_device_eval_batch_size": 8,
     "gradient_accumulation_steps": 4,
     "gradient_checkpointing": True,
-    "evaluation_strategy": "steps",
+    # "evaluation_strategy": "steps", # REMOVED: This key is not supported in your version
     "eval_steps": 1000,
-    "save_strategy": "steps",
+    # "save_strategy": "steps",       # REMOVED: This key is also likely not supported
     "save_steps": 1000,
     "save_total_limit": 3,
     "logging_steps": 100,
@@ -67,10 +68,11 @@ TRAINING_ARGS = {
     "lr_scheduler_type": "cosine",
     "fp16": MODEL_CONFIG["torch_dtype"] == "float16",
     "bf16": MODEL_CONFIG["torch_dtype"] == "bfloat16",
-    "load_best_model_at_end": True,
+    "load_best_model_at_end": False,
     "overwrite_output_dir": True,
     "do_train": True,
     "do_eval": True,
+    "max_steps": 10000,
 }
 
 # 4. Language Tag Configuration
