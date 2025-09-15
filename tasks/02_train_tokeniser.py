@@ -28,7 +28,7 @@ def train_sentencepiece_tokenizer():
     os.makedirs(model_dir, exist_ok=True)
 
     model_prefix = os.path.join(model_dir, 'multilingual_spm')
-    vocab_size = 320003
+    vocab_size = 32003
     character_coverage = 1.0
     model_type = 'bpe'
     

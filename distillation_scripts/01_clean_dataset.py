@@ -34,7 +34,7 @@ LATIN_REGEX = re.compile(r'[a-zA-Z0-9]+')
 def has_devanagari(text):
     return bool(DEVANAGARI_REGEX.search(text))
 
-def has_latin(text):
+def has_latin(text):    
     return bool(LATIN_REGEX.search(text))
 
 def clean_line(line):
