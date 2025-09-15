@@ -4,12 +4,11 @@ import logging
 from pathlib import Path
 
 import torch
-from datasets import load_dataset
+from datasets import load_dataset, interleave_datasets
 from transformers import (
     AutoConfig,
     AutoModelForCausalLM,
     AutoTokenizer,
-    # LlamaTokenizer, # Removed: No longer needed as a bridge
     Trainer,
     TrainingArguments,
     DataCollatorForLanguageModeling,
@@ -24,7 +23,7 @@ logger = logging.getLogger(__name__)
 # 1. Define Project and Model Paths
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 TOKENIZER_DIR = PROJECT_ROOT / "model" / "tokenizer"
-PROCESSED_DATA_DIR = PROJECT_ROOT / "data" / "processed"
+RAW_DATA_DIR = PROJECT_ROOT / "data" / "raw"  # MODIFIED: Point to the raw data directory
 PRETRAINED_CHECKPOINTS_DIR = PROJECT_ROOT / "model" / "checkpoints" / "pretrained"
 LOG_DIR = PRETRAINED_CHECKPOINTS_DIR / "logs"
 
@@ -57,9 +56,9 @@ TRAINING_ARGS = {
     "gradient_accumulation_steps": 4,
     "gradient_checkpointing": True,
     "evaluation_strategy": "steps",
-    "eval_steps": 2500,
+    "eval_steps": 1000,
     "save_strategy": "steps",
-    "save_steps": 2500,
+    "save_steps": 1000,
     "save_total_limit": 3,
     "logging_steps": 100,
     "learning_rate": 5e-5,
@@ -74,6 +73,12 @@ TRAINING_ARGS = {
     "do_eval": True,
 }
 
+# 4. Language Tag Configuration
+LANGUAGE_TAG_MAP = {
+    "english": "<en>",
+    "hindi": "<hi>",
+    "sanskrit": "<sa>"
+}
 
 def main():
     """
@@ -87,8 +92,6 @@ def main():
     # --- 1. Load Custom Tokenizer ---
     logger.info(f"Loading tokenizer from directory: {TOKENIZER_DIR}")
     
-    # The tokenizer should now be directly loadable as a Hugging Face tokenizer
-    # after running 02_train_tokeniser.py successfully.
     try:
         tokenizer = AutoTokenizer.from_pretrained(str(TOKENIZER_DIR), trust_remote_code=True)
         if tokenizer.pad_token is None:
@@ -97,7 +100,7 @@ def main():
         logger.info(f"Tokenizer loaded successfully. Vocab size: {tokenizer.vocab_size}")
     except Exception as e:
         logger.error(f"Error loading tokenizer from {TOKENIZER_DIR}. Please ensure 02_train_tokeniser.py "
-                     f"has been run successfully to create Hugging Face compatible tokenizer files. Error: {e}")
+                     f"has been run successfully. Error: {e}")
         raise
 
     # --- 2. Configure and Initialize Model ---
@@ -105,7 +108,7 @@ def main():
     config = AutoConfig.from_pretrained(
         "Qwen/Qwen3-0.6B-Base",
         **MODEL_CONFIG,
-        vocab_size=len(tokenizer), # Ensure model vocab size matches the trained tokenizer
+        vocab_size=len(tokenizer),
         pad_token_id=tokenizer.pad_token_id,
         eos_token_id=tokenizer.eos_token_id,
         bos_token_id=tokenizer.bos_token_id,
@@ -121,15 +124,49 @@ def main():
             f"WARNING: Model parameter count ({params:.2f}M) is outside the target range of 100M-150M."
         )
 
-    # --- 3. Load and Prepare Datasets ---
-    processed_files = list(PROCESSED_DATA_DIR.glob("*.txt"))
-    if not processed_files:
-        raise FileNotFoundError(f"No processed .txt files found in {PROCESSED_DATA_DIR}.")
+    # --- 3. Load and Prepare Datasets from Raw Files (Streaming Mode) ---
+    # MODIFIED: Pointing to RAW_DATA_DIR
+    raw_files = list(RAW_DATA_DIR.glob("*.txt"))
+    if not raw_files:
+        raise FileNotFoundError(f"No raw .txt files found in {RAW_DATA_DIR}.")
 
-    logger.info("Loading processed text data...")
-    dataset = load_dataset("text", data_files=[str(f) for f in processed_files], split='train')
-    split_dataset = dataset.train_test_split(test_size=0.01, seed=42, shuffle=True)
-    logger.info(f"Dataset split. Train size: {len(split_dataset['train'])}, Validation size: {len(split_dataset['test'])}")
+    logger.info("Loading raw text data in STREAMING mode and adding language tags...")
+
+    # Helper function to infer language tag from filename
+    def get_lang_tag_from_filename(filepath: Path):
+        file_stem = filepath.stem.lower()
+        for lang_keyword, tag in LANGUAGE_TAG_MAP.items():
+            if lang_keyword in file_stem:
+                return tag
+        return None
+
+    all_streaming_datasets = []
+    for f_path in raw_files:
+        lang_tag = get_lang_tag_from_filename(f_path)
+        if lang_tag:
+            logger.info(f"Loading {f_path.name} with tag '{lang_tag}' as a stream.")
+            stream_dataset = load_dataset("text", data_files=[str(f_path)], split='train', streaming=True)
+            tagged_stream = stream_dataset.map(lambda example: {"text": f"{lang_tag}{example['text']}"})
+            all_streaming_datasets.append(tagged_stream)
+        else:
+            logger.warning(f"Could not infer language for file: {f_path.name}. Skipping this file.")
+
+    if not all_streaming_datasets:
+        raise ValueError("No datasets were loaded. Ensure file names contain language keywords (e.g., 'lang_english').")
+
+    # Interleave datasets to mix languages. This is the streaming equivalent of concatenating and shuffling.
+    dataset = interleave_datasets(all_streaming_datasets)
+    
+    # MODIFIED: Re-enabled shuffling. This is critical for model training.
+    # It shuffles the stream using a buffer to ensure batches contain a mix of languages.
+    dataset = dataset.shuffle(seed=42, buffer_size=10000)
+
+    # Create a train/validation split from the stream using .take() and .skip()
+    val_size = 1000  # Use a fixed number of examples for validation
+    eval_dataset = dataset.take(val_size)
+    train_dataset = dataset.skip(val_size)
+    
+    logger.info(f"Dataset prepared in streaming mode. Using {val_size} examples for validation.")
 
     # --- 4. Tokenize and Group the Dataset ---
     logger.info("Tokenizing and formatting the dataset for language modeling...")
@@ -147,24 +184,26 @@ def main():
         result["labels"] = result["input_ids"].copy()
         return result
 
-    lm_datasets = split_dataset.map(
+    lm_train_dataset = train_dataset.map(
         tokenize_and_group,
         batched=True,
-        num_proc=os.cpu_count(),
         remove_columns=["text"],
-        desc=f"Grouping texts into chunks of {block_size}",
     )
-    train_dataset = lm_datasets["train"]
-    eval_dataset = lm_datasets["test"]
-    logger.info(f"Tokenization complete. Train examples: {len(train_dataset)}, Eval examples: {len(eval_dataset)}")
+    lm_eval_dataset = eval_dataset.map(
+        tokenize_and_group,
+        batched=True,
+        remove_columns=["text"],
+    )
+    
+    logger.info("Tokenization and grouping mapping is set up for the streams.")
     
     # --- 5. Set up the Trainer ---
     logger.info("Setting up the Hugging Face Trainer.")
     training_args = TrainingArguments(**TRAINING_ARGS)
     data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
     trainer = Trainer(
-        model=model, args=training_args, train_dataset=train_dataset,
-        eval_dataset=eval_dataset, tokenizer=tokenizer, data_collator=data_collator,
+        model=model, args=training_args, train_dataset=lm_train_dataset,
+        eval_dataset=lm_eval_dataset, tokenizer=tokenizer, data_collator=data_collator,
     )
 
     # --- 6. Start Training ---
@@ -175,12 +214,11 @@ def main():
         trainer.save_model()
         trainer.save_state()
         metrics = train_result.metrics
-        metrics["train_samples"] = len(train_dataset)
         trainer.log_metrics("train", metrics)
         trainer.save_metrics("train", metrics)
         logger.info("Performing final evaluation on the validation set...")
         eval_metrics = trainer.evaluate()
-        eval_metrics["eval_samples"] = len(eval_dataset)
+        eval_metrics["eval_samples"] = val_size
         trainer.log_metrics("eval", eval_metrics)
         trainer.save_metrics("eval", eval_metrics)
     except Exception as e:
