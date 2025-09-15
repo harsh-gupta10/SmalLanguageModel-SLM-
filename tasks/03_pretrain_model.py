@@ -51,14 +51,12 @@ TRAINING_ARGS = {
     "output_dir": str(PRETRAINED_CHECKPOINTS_DIR),
     "logging_dir": str(LOG_DIR),
     "report_to": "tensorboard",
-    "num_train_epochs": 3,
-    "per_device_train_batch_size": 8,
-    "per_device_eval_batch_size": 8,
-    "gradient_accumulation_steps": 4,
+    "max_steps": 10000,
+    "per_device_train_batch_size": 2,  # MODIFIED: Drastically reduced batch size
+    "per_device_eval_batch_size": 2,   # MODIFIED: Also reduce for evaluation
+    "gradient_accumulation_steps": 16, # MODIFIED: Increased to keep effective batch size at 32 (2 * 16)
     "gradient_checkpointing": True,
-    # "evaluation_strategy": "steps", # REMOVED: This key is not supported in your version
     "eval_steps": 1000,
-    # "save_strategy": "steps",       # REMOVED: This key is also likely not supported
     "save_steps": 1000,
     "save_total_limit": 3,
     "logging_steps": 100,
@@ -68,11 +66,11 @@ TRAINING_ARGS = {
     "lr_scheduler_type": "cosine",
     "fp16": MODEL_CONFIG["torch_dtype"] == "float16",
     "bf16": MODEL_CONFIG["torch_dtype"] == "bfloat16",
+    "optim": "adamw_8bit", # MODIFIED: Use memory-efficient 8-bit Adam optimizer
     "load_best_model_at_end": False,
     "overwrite_output_dir": True,
     "do_train": True,
     "do_eval": True,
-    "max_steps": 10000,
 }
 
 # 4. Language Tag Configuration
