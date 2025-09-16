@@ -51,14 +51,14 @@ TRAINING_ARGS = {
     "output_dir": str(PRETRAINED_CHECKPOINTS_DIR),
     "logging_dir": str(LOG_DIR),
     "report_to": "tensorboard",
-    "max_steps": 10000,
-    "per_device_train_batch_size": 2,  # MODIFIED: Drastically reduced batch size
-    "per_device_eval_batch_size": 2,   # MODIFIED: Also reduce for evaluation
-    "gradient_accumulation_steps": 16, # MODIFIED: Increased to keep effective batch size at 32 (2 * 16)
+    "max_steps": 40000,
+    "per_device_train_batch_size": 8,  # MODIFIED: Drastically reduced batch size
+    "per_device_eval_batch_size": 8,   # MODIFIED: Also reduce for evaluation
+    "gradient_accumulation_steps": 2, # MODIFIED: Increased to keep effective batch size at 32 (2 * 16)
     "gradient_checkpointing": True,
-    "eval_steps": 1000,
-    "save_steps": 1000,
-    "save_total_limit": 3,
+    "eval_steps": 2000,
+    "save_steps": 2000,
+    "save_total_limit": 10,
     "logging_steps": 100,
     "learning_rate": 5e-5,
     "weight_decay": 0.01,
@@ -66,7 +66,7 @@ TRAINING_ARGS = {
     "lr_scheduler_type": "cosine",
     "fp16": MODEL_CONFIG["torch_dtype"] == "float16",
     "bf16": MODEL_CONFIG["torch_dtype"] == "bfloat16",
-    "optim": "adamw_8bit", # MODIFIED: Use memory-efficient 8-bit Adam optimizer
+    "optim": "adamw_torch",
     "load_best_model_at_end": False,
     "overwrite_output_dir": True,
     "do_train": True,
