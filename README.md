@@ -1,5 +1,3 @@
-# Final Report
-
 ## Language, Model and Agents Mini-Project
 
 `Name:` Ansh Chablani <br>
