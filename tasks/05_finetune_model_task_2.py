@@ -7,23 +7,17 @@ import json
 
 from peft import LoraConfig, get_peft_model, TaskType
 
-# --- Configuration ---
-# 1. Path to the model you want to continue fine-tuning
 PRETRAINED_MODEL_PATH = 'model/checkpoints/pretrained/checkpoint-24000'
 TOKENIZER_PATH = PRETRAINED_MODEL_PATH
 
-# 2. Input JSON data files for the new task (English and Hindi)
 DATA_FILES = ['finetuning/data/02_english.json', 'finetuning/data/02_hindi.json']
 
-# 3. Output directory for the new LoRA adapters
 OUTPUT_MODEL_DIR = 'model/checkpoints/finetuned/task_2/'
 
-# --- Training Hyperparameters ---
 LEARNING_RATE = 2e-4
 NUM_EPOCHS = 20
-BATCH_SIZE = 24 # Adjust if you face memory issues
+BATCH_SIZE = 24
 
-# --- PEFT & LoRA Configuration (Generally can be kept the same) ---
 LORA_R = 16
 LORA_ALPHA = 32
 LORA_DROPOUT = 0.05
@@ -32,9 +26,6 @@ LORA_TARGET_MODULES = [
     "v_proj",
 ]
 
-# --- New Prompt Template ---
-# This template is generic and works for both English and Hindi
-# by directly using the instruction from the data file.
 PROMPT_TEMPLATE = """### Instruction:
 {instruction}
 
@@ -44,13 +35,7 @@ PROMPT_TEMPLATE = """### Instruction:
 ### Response:
 {output}"""
 
-# --- Dataset and Collate Function ---
-
 class NounVerbSwapDataset(Dataset):
-    """
-    A PyTorch Dataset to handle the noun-verb swap JSON data.
-    It reads JSON files containing a list of dictionaries.
-    """
     def __init__(self, data_files, tokenizer):
         self.tokenizer = tokenizer
         self.data = []
@@ -73,12 +58,10 @@ class NounVerbSwapDataset(Dataset):
     def __getitem__(self, idx):
         item = self.data[idx]
         
-        # Get data from the item, providing default empty strings
         instruction = item.get("instruction", "")
         input_text = item.get("input", "")
         output_text = item.get("output", "")
 
-        # Format the full prompt with the response included
         full_prompt = PROMPT_TEMPLATE.format(
             instruction=instruction,
             input=input_text,
@@ -87,20 +70,18 @@ class NounVerbSwapDataset(Dataset):
         
         tokenized_full = self.tokenizer(full_prompt, truncation=True, max_length=512, padding=False)
 
-        # Format the prompt without the response to calculate its length
         prompt_without_response = PROMPT_TEMPLATE.format(
             instruction=instruction,
             input=input_text,
-            output="" # The response part is empty
+            output=""
         )
         tokenized_prompt_only = self.tokenizer(prompt_without_response, truncation=True, max_length=512, padding=False)
         
         prompt_len = len(tokenized_prompt_only['input_ids'])
 
-        # Create labels, masking out the prompt part
         labels = list(tokenized_full['input_ids'])
         for i in range(prompt_len):
-            labels[i] = -100 # -100 is the ignore_index for the loss function
+            labels[i] = -100
 
         return {
             "input_ids": torch.tensor(tokenized_full['input_ids'], dtype=torch.long),
@@ -148,7 +129,6 @@ def finetune_with_lora():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
 
-    # Load the base model and tokenizer
     print(f"Loading base model from: {PRETRAINED_MODEL_PATH}")
     model = AutoModelForCausalLM.from_pretrained(PRETRAINED_MODEL_PATH)
     tokenizer = AutoTokenizer.from_pretrained(TOKENIZER_PATH)
@@ -158,7 +138,6 @@ def finetune_with_lora():
         tokenizer.pad_token = tokenizer.eos_token
         model.config.pad_token_id = model.config.eos_token_id
 
-    # --- Prepare model for LoRA training ---
     print("\nInitializing LoRA...")
     lora_config = LoraConfig(
         r=LORA_R,
@@ -175,7 +154,6 @@ def finetune_with_lora():
     print("\nModel architecture with LoRA adapters:")
     print_trainable_parameters(model)
     
-    # --- Dataset and DataLoader ---
     train_dataset = NounVerbSwapDataset(DATA_FILES, tokenizer)
     train_dataloader = DataLoader(
         train_dataset,
@@ -190,7 +168,6 @@ def finetune_with_lora():
         name="linear", optimizer=optimizer, num_warmup_steps=0, num_training_steps=num_training_steps
     )
     
-    # --- Training Loop ---
     progress_bar = tqdm(range(num_training_steps), desc="Fine-Tuning with LoRA")
     model.train()
 

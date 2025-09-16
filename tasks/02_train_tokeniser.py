@@ -1,8 +1,6 @@
-# 02_train_tokeniser.py (Optimized for Multi-core CPU)
-
 import os
 import sentencepiece as spm
-from transformers import LlamaTokenizer # Import LlamaTokenizer from transformers
+from transformers import LlamaTokenizer
 
 def train_sentencepiece_tokenizer():
     print("Starting tokenizer training...")
@@ -32,8 +30,8 @@ def train_sentencepiece_tokenizer():
     character_coverage = 1.0
     model_type = 'bpe'
     
-    input_sentence_size = 10000000  # Sample 10 million sentences
-    shuffle_input_sentence = 'true' # Enable random sampling
+    input_sentence_size = 10000000
+    shuffle_input_sentence = 'true'
 
     spm_command = (
         f'--input={",".join(input_files)} '
@@ -57,30 +55,22 @@ def train_sentencepiece_tokenizer():
         print(f"SentencePiece vocabulary saved to: {model_prefix}.vocab")
         
         print("\n--- Converting SentencePiece model to Hugging Face format ---")
-        # Load the trained SentencePiece model using SentencePieceProcessor for ID mapping
         sp = spm.SentencePieceProcessor()
         sp.load(f'{model_prefix}.model')
 
-        # Initialize LlamaTokenizer directly from the SentencePiece model file
         hf_tokenizer = LlamaTokenizer(vocab_file=f'{model_prefix}.model')
         
-        # Set the special tokens for the Hugging Face tokenizer based on SentencePiece's configuration
-        # This ensures consistency and proper handling by Hugging Face models.
         hf_tokenizer.pad_token = sp.id_to_piece(sp.pad_id())
         hf_tokenizer.unk_token = sp.id_to_piece(sp.unk_id())
         hf_tokenizer.bos_token = sp.id_to_piece(sp.bos_id())
         hf_tokenizer.eos_token = sp.id_to_piece(sp.eos_id())
         
-        # Save the Hugging Face compatible tokenizer
-        # This will create tokenizer.json, special_tokens_map.json, and tokenizer_config.json
-        # in the specified model_dir, alongside the .model and .vocab files.
         hf_tokenizer.save_pretrained(model_dir)
         print(f"Hugging Face tokenizer saved to: {model_dir}")
         print("This directory now contains tokenizer.json, special_tokens_map.json, etc.,")
         print("allowing direct loading with AutoTokenizer.from_pretrained.")
 
         print("\n--- Testing the trained tokenizer ---")
-        # Use the newly saved Hugging Face tokenizer for testing
         test_tokenizer = LlamaTokenizer.from_pretrained(model_dir) 
 
         test_sentences = [
@@ -90,10 +80,7 @@ def train_sentencepiece_tokenizer():
         ]
         
         for sentence in test_sentences:
-            encoded = test_tokenizer.encode_as_pieces(sentence) # Use encode_as_pieces for SentencePiece like output
-            # Alternatively, for standard HF tokenization:
-            # encoded_ids = test_tokenizer.encode(sentence)
-            # decoded_text = test_tokenizer.decode(encoded_ids)
+            encoded = test_tokenizer.encode_as_pieces(sentence)
             print(f"Original: {sentence}")
             print(f"Tokenized: {encoded}\n")
 

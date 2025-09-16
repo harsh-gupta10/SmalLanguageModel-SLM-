@@ -1,0 +1,22 @@
+Loading model from: /home/skills/ansh/dataset_gen/delme/ds_gen/model/checkpoints/pretrained/checkpoint-24000
+Model loaded successfully.
+Loading tokenizer from: /home/skills/ansh/dataset_gen/delme/ds_gen/model/tokenizer
+Tokenizer loaded successfully.
+
+--- Generating for English ---
+Prompt: <en>Once upon a time
+
+Cleaned Generated Text:
+Once upon a time to you think the world. This is to be on the home, and it was there's just we want to get. But's have about the best of the same time. I will have an only for the most other week, but
+
+--- Generating for Hindi ---
+Prompt: <hi>एक समय की बात है
+
+Cleaned Generated Text:
+एक समय की बात है, मैं इस मुझे नकर में और तो यह को ही नहीं हो। आप अपने से भी कुछ है! एक के हर कम था कि इससे फिर अपने दो दी जाता था। |2||
+
+--- Generating for Sanskrit ---
+Prompt: <sa>कदाचित्कालः आसीत्
+
+Cleaned Generated Text:
+कदाचित्कालः आसीत् ।

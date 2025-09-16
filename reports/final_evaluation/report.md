@@ -176,9 +176,8 @@ I first pretrained a baseline multilingual Qwen3 model from scratch for performa
 
 ## Finetuning
 
-### Dataset Creation - Task 1
+## Dataset Creation - Task 1
 
-## Fine-tuning Dataset Creation
 
 To fine-tune the model on a **fact decontextualization** task, I created a custom dataset using a large language model (LLM).  
 The goal was to train the model to convert a **contextualized sentence** into a **standalone atomic fact**.
@@ -222,3 +221,173 @@ The goal was to train the model to convert a **contextualized sentence** into a 
 **Decontextualization Task-Specific:** Instead of generic QA pairs, the dataset directly targeted the skill I wanted my model to learn: rewriting context-rich sentences into standalone factual statements.
 
 **Bilingual Extension:** The same pipeline was applied to Hindi, ensuring that the fine-tuned model could handle decontextualization across multiple scripts and languages.
+
+To enhance the model's capabilities, I fine-tuned it on two specific tasks.
+
+## Finetuning Process - Task 1
+
+For the first task, fact decontextualization, I employed Parameter-Efficient Fine-Tuning (PEFT) using Low-Rank Adaptation (LoRA). This approach is highly efficient as it avoids retraining the entire model. Instead, it freezes the pretrained model weights and injects trainable "adapter" layers.
+
+The key steps in this process were:
+
+1.  **Model Loading:** The pretrained multilingual model was loaded, along with its corresponding tokenizer.
+2.  **LoRA Configuration:** I configured LoRA to target the query and value projection layers (`q_proj`, `v_proj`) of the model's attention mechanism. This is a common practice as these layers are crucial for how the model weighs and interprets input tokens. The rank (`r`) of the LoRA matrices was set to 16, providing a good balance between expressiveness and parameter efficiency.
+3.  **Prompt Templating:** A standardized prompt template was created to structure the input for the model. This template clearly separates the instruction, the input sentence, and the expected response, which helps the model learn the task more effectively.
+4.  **Dataset Preparation:** The previously generated `.jsonl` files for English and Hindi were loaded into a custom PyTorch Dataset. A crucial step here was to mask the input part of the prompt in the loss calculation. This ensures that the model is only trained to predict the `output` (the decontextualized fact) and not the instruction or input sentence, leading to more efficient learning.
+5.  **Training with PEFT:** The model was trained for 20 epochs using the AdamW optimizer. The PEFT library seamlessly integrated the LoRA adapters into the model, and I was able to train it using a standard PyTorch training loop. The number of trainable parameters was a small fraction of the total model size (around 0.08%), which significantly reduced the computational resources required.
+6.  **Saving Adapters:** After training, only the LoRA adapter weights were saved, not the entire model. This is a key advantage of PEFT, as these adapters are small and can be easily shared and loaded on top of the base pretrained model for inference.
+
+This PEFT-based finetuning process allowed for efficient and effective adaptation of the pretrained model to the specific task of fact decontextualization.
+
+## Dataset Creation - Task 2
+
+For the second task, "Identify and replace nouns with verbs from a given sentence," I generated two separate datasets for English and Hindi.
+
+**English Dataset:**
+
+1.  **Corpus:** I used the classic "Sense and Sensibility" text from the NLTK Gutenberg corpus as the source of grammatically correct English sentences.
+2.  **Sentence Tokenization:** The raw text was first cleaned to normalize whitespace and then split into individual sentences using `nltk.sent_tokenize`.
+3.  **POS Tagging:** The `spaCy` library was used to perform Part-of-Speech (POS) tagging on each sentence to identify all nouns (`NOUN`, `PROPN`) and verbs (`VERB`).
+4.  **Noun-Verb Swapping:** For each sentence containing both nouns and verbs, a random number of noun-verb pairs were selected for swapping. The selected nouns and verbs were then shuffled and swapped to create a syntactically altered but grammatically plausible new sentence.
+5.  **Data Cleaning:** A post-processing step was applied to clean up any artifacts from the automated swapping, such as extra spaces before punctuation.
+6.  **Output Format:** The final dataset, consisting of 5000 samples, was saved in a JSON file. Each entry included a standard instruction, the original sentence (`input`), and the modified sentence (`output`).
+
+**Hindi Dataset:**
+
+A similar process was followed for Hindi, with adjustments for the language:
+
+1.  **Corpus:** A large raw text file of Hindi sentences (`lang_hindi.txt`) was used as the source. To handle the large file size without excessive memory usage, the script was designed to read the file line by line.
+2.  **NLP Pipeline:** The `Stanza` library, which offers robust support for Hindi, was used for sentence segmentation and POS tagging.
+3.  **Swapping Logic:** The core noun-verb swapping logic remained the same. Stanza's word objects were used to identify nouns and verbs, and a new sentence was constructed by swapping their text.
+4.  **Instruction:** The instruction was provided in Hindi ("दिए गए वाक्य में संज्ञा को क्रिया से और क्रिया को संज्ञा से पहचानें और बदलें।").
+5.  **Output:** 5000 samples were generated and saved in a separate JSON file, following the same structure as the English dataset.
+
+This dual-language dataset creation ensures that the model is trained to perform the noun-verb swap task in both English and Hindi.
+
+## Finetuning Process - Task 2
+
+The finetuning for the second task followed a similar PEFT with LoRA approach as the first task, building on the same pretrained model.
+
+1.  **Model and Tokenizer:** The same base pretrained model and tokenizer were used.
+2.  **Dataset Loading:** A new PyTorch Dataset class was created to load the JSON files for the noun-verb swap task. This class was designed to handle the list-of-dictionaries format of the new dataset.
+3.  **Prompt Template:** A flexible prompt template was used, which could accommodate both the English and Hindi instructions directly from the data files.
+4.  **LoRA Configuration:** The LoRA configuration (rank, alpha, target modules) was kept consistent with the first finetuning task to maintain a standardized approach.
+5.  **Training:** The model was trained for 20 epochs with a batch size of 24. As before, the prompt portion of the input was masked from the loss calculation, focusing the training on generating the correct modified sentence.
+6.  **Saving Adapters:** The newly trained LoRA adapters specific to the noun-verb swap task were saved to a separate directory. This modular approach allows for keeping different sets of task-specific adapters that can be loaded onto the base model as needed.
+
+By using the same PEFT methodology, I was able to efficiently train the model on a second, distinct task, further enhancing its versatility and demonstrating the power of using trainable adapters for multi-task learning.
+
+# Results (See full results in `outputs folder`)
+
+## Pretraining
+
+### Example 1
+
+```
+--- Generating for English ---
+Prompt: <en>Once upon a time
+
+Cleaned Generated Text:
+Once upon a time to you think the world. This is to be on the home, and it was there's just we want to get. But's have about the best of the same time. I will have an only for the most other week, but
+
+--- Generating for Hindi ---
+Prompt: <hi>एक समय की बात है
+
+Cleaned Generated Text:
+एक समय की बात है, मैं इस मुझे नकर में और तो यह को ही नहीं हो। आप अपने से भी कुछ है! एक के हर कम था कि इससे फिर अपने दो दी जाता था। |2||
+
+--- Generating for Sanskrit ---
+Prompt: <sa>कदाचित्कालः आसीत्
+
+Cleaned Generated Text:
+कदाचित्कालः आसीत् ।
+```
+
+### Example 2
+
+```
+--- Generating for English ---
+Prompt: <en>Once upon a time
+
+Cleaned Generated Text:
+Once upon a time, and the same of the first is so more like in me. If you're to be able to go for your good to have been only just
+
+--- Generating for Hindi ---
+Prompt: <hi>एक समय की बात है
+
+Cleaned Generated Text:
+एक समय की बात है। (५) तयंत् । 'अत्रं लति' इति 'अमस्य' इत्ययमिति । नापि - 'तथम्' न चः म्यामा, तद्धिपिकः ।
+
+--- Generating for Sanskrit ---
+Prompt: <sa>कदाचित्कालः आसीत्
+
+Cleaned Generated Text:
+कदाचित्कालः आसीत् । अथ चैव प्राहना हि न गन्तत इति शङ्कति, तदेणिकानि, ते ससन्गवय एव वयाम्, अचे मते समल्वस्य विहति ।
+```
+
+### Example 3
+
+```
+--- Generating for English ---
+Prompt: <en>Once upon a time
+
+Cleaned Generated Text:
+Once upon a time of the most is not you or was have to go? For no way, it can be do like out. It was the people were as I can't tell me that the good with the number’s in an other-the
+
+--- Generating for Hindi ---
+Prompt: <hi>एक समय की बात है
+
+Cleaned Generated Text:
+एक समय की बात है कि पर 'अधुजस्य' ।
+
+--- Generating for Sanskrit ---
+Prompt: <sa>कदाचित्कालः आसीत्
+
+Cleaned Generated Text:
+कदाचित्कालः आसीत् । ननु तस्य स्वस्य वा साऽर्थे तु यथा न तक्षौ गावादकस्तां पूर्वं जवागते । यन्ताहयापताति समन् पिपि भुते 'मदती
+```
+
+## Finetuning
+
+### Task 1
+```
+
+```
+
+### Example 1
+```
+
+```
+
+### Example 2
+```
+
+```
+
+### Example 3
+```
+
+```
+
+### Task 2
+
+### Example 1
+```
+
+```
+
+### Example 2
+```
+
+```
+
+### Example 3
+```
+
+```
+
+# Metrics
+
+## Perplexity
+
+## Other Metrics...

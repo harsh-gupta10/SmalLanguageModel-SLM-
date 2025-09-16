@@ -1,4 +1,4 @@
-# tasks/01_preprocess_data.py
+# tasks/01_get_data.py
 
 import os
 from datasets import load_dataset

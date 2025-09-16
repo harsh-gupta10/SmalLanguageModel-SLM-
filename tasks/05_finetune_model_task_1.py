@@ -12,28 +12,18 @@ TOKENIZER_PATH = PRETRAINED_MODEL_PATH
 DATA_FILES = ['finetuning/data/01_fact_decontextualisation_english.jsonl', 'finetuning/data/01_fact_decontextualisation_hindi.jsonl']
 OUTPUT_MODEL_DIR = 'model/checkpoints/finetuned'
 
-# Training Hyperparameters
-LEARNING_RATE = 2e-4 # LoRA can often handle a slightly higher learning rate
+LEARNING_RATE = 2e-4
 NUM_EPOCHS = 20
 BATCH_SIZE = 65
 
-# --- PEFT & LoRA Configuration ---
-LORA_R = 16                # Rank of the update matrices. A higher rank means more parameters.
-LORA_ALPHA = 32            # A scaling factor, often set to 2 * LORA_R.
+LORA_R = 16
+LORA_ALPHA = 32
 LORA_DROPOUT = 0.05
-# This is the most important parameter. It specifies which modules to apply LoRA to.
-# For most transformer models, this includes the query and value projection layers.
-# You can find the names by printing the model architecture: `print(model)`
 LORA_TARGET_MODULES = [
     "q_proj",
     "v_proj",
-#   "k_proj", # Optional: sometimes key projection is also included
-#   "o_proj", # Optional: output projection
-#   "gate_proj", "up_proj", "down_proj" # Optional: for FFN layers
 ]
 
-
-# --- Prompt Template ---
 PROMPT_TEMPLATE = """### Instruction:
 Extract a standalone fact from the following sentence.
 
@@ -42,8 +32,6 @@ Extract a standalone fact from the following sentence.
 
 ### Response:
 {fact}"""
-
-# --- Dataset and Collate Function (No changes needed here) ---
 
 class FactDecontextDataset(Dataset):
     def __init__(self, data_files, tokenizer):
@@ -96,7 +84,6 @@ def custom_collate_fn(batch, pad_token_id):
     }
 
 def print_trainable_parameters(model):
-    """Prints the number of trainable parameters in the model."""
     trainable_params = 0
     all_param = 0
     for _, param in model.named_parameters():
@@ -130,18 +117,15 @@ def finetune_with_lora():
         target_modules=LORA_TARGET_MODULES,
         lora_dropout=LORA_DROPOUT,
         bias="none",
-        task_type=TaskType.CAUSAL_LM  # Crucial for Causal LM tasks
+        task_type=TaskType.CAUSAL_LM
     )
 
-    # Wrap the model with PEFT
     model = get_peft_model(model, lora_config)
     model.to(device)
     
-    # Print the dramatic reduction in trainable parameters
     print("\nModel architecture with LoRA adapters:")
     print_trainable_parameters(model)
     
-    # --- Dataset and DataLoader ---
     train_dataset = FactDecontextDataset(DATA_FILES, tokenizer)
     train_dataloader = DataLoader(
         train_dataset,
@@ -156,9 +140,9 @@ def finetune_with_lora():
         name="linear", optimizer=optimizer, num_warmup_steps=0, num_training_steps=num_training_steps
     )
     
-    # --- Training Loop (Identical to full fine-tuning) ---
+    # --- Training Loop
     progress_bar = tqdm(range(num_training_steps), desc="Fine-Tuning with LoRA")
-    model.train() # Set the model to training mode
+    model.train()
 
     for epoch in range(NUM_EPOCHS):
         print(f"\n--- Epoch {epoch+1}/{NUM_EPOCHS} ---")
@@ -180,12 +164,10 @@ def finetune_with_lora():
         avg_loss = total_loss / len(train_dataloader)
         print(f"Average Loss for Epoch {epoch+1}: {avg_loss:.4f}")
 
-    # --- Saving the LoRA Adapters ---
     print("\nFine-tuning finished! Saving LoRA adapters...")
     os.makedirs(OUTPUT_MODEL_DIR, exist_ok=True)
-    # This saves only the adapter weights and config, not the full model
     model.save_pretrained(OUTPUT_MODEL_DIR)
-    tokenizer.save_pretrained(OUTPUT_MODEL_DIR) # Also save the tokenizer for convenience
+    tokenizer.save_pretrained(OUTPUT_MODEL_DIR)
     print(f"LoRA adapters saved to {OUTPUT_MODEL_DIR}")
 
 

@@ -1,0 +1,26 @@
+Using device: cuda
+Loading base model from: model/checkpoints/pretrained/checkpoint-24000
+Loading LoRA adapters from: model/checkpoints/finetuned/task_1/
+
+Model ready for inference!
+--------------------
+Original English Sentence:
+She enjoys painting landscapes in her free time
+
+Extracted Fact:
+The first love need the first employees.
+--------------------
+--------------------
+Original Hindi Sentence:
+ताजमहल, जो भारत के आगरा शहर में स्थित एक हाथीदांत-सफेद संगमरमर का मकबरा है, को मुगल सम्राट शाहजहाँ ने अपनी पसंदीदा पत्नी मुमताज महल की याद में बनवाया था।
+
+Extracted Fact:
+जविलल विचत के खिलाफ एक ही देश है।
+--------------------
+--------------------
+Original Custom Sentence:
+The mall, which opened in 2005, is the largest shopping center in the city.
+
+Extracted Fact:
+The law will be me the world's largest world.
+--------------------

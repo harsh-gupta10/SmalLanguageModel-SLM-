@@ -1,0 +1,22 @@
+Loading model from: /home/skills/ansh/dataset_gen/delme/ds_gen/model/checkpoints/pretrained/checkpoint-24000
+Model loaded successfully.
+Loading tokenizer from: /home/skills/ansh/dataset_gen/delme/ds_gen/model/tokenizer
+Tokenizer loaded successfully.
+
+--- Generating for English ---
+Prompt: <en>Once upon a time
+
+Cleaned Generated Text:
+Once upon a time, and the same of the first is so more like in me. If you're to be able to go for your good to have been only just
+
+--- Generating for Hindi ---
+Prompt: <hi>एक समय की बात है
+
+Cleaned Generated Text:
+एक समय की बात है। (५) तयंत् । 'अत्रं लति' इति 'अमस्य' इत्ययमिति । नापि - 'तथम्' न चः म्यामा, तद्धिपिकः ।
+
+--- Generating for Sanskrit ---
+Prompt: <sa>कदाचित्कालः आसीत्
+
+Cleaned Generated Text:
+कदाचित्कालः आसीत् । अथ चैव प्राहना हि न गन्तत इति शङ्कति, तदेणिकानि, ते ससन्गवय एव वयाम्, अचे मते समल्वस्य विहति ।
