@@ -1,0 +1,25 @@
+Using device: cuda
+Loading base model from: model/checkpoints/pretrained/checkpoint-24000
+Loading tokenizer from: model/checkpoints/finetuned/task_2/
+Loading LoRA adapters from: model/checkpoints/finetuned/task_2/
+Model and tokenizer loaded successfully.
+
+==================================================
+Running Inference Demonstrations...
+==================================================
+
+Instruction: In the given sentence, find nouns and replace them with verbs, and replace verbs with nouns.
+Input: The tall giraffe eats leaves from the highest branch.
+Model Output: Theers Iram Marianne from the same mind.
+
+--------------------------------------------------
+Instruction: दिए गए वाक्य में संज्ञा को क्रिया से और क्रिया को संज्ञा से बदलें।
+Input: विद्यार्थी ने परीक्षा के लिए कठिन परिश्रम किया और अच्छे अंक प्राप्त किये।
+Model Output: यहिया ने करने के लिए लोगों परासिक भी और कुछ है।
+
+--------------------------------------------------
+Instruction: In the given sentence, find nouns and replace them with verbs, and replace verbs with nouns.
+Input: The artist painted a beautiful landscape, which later hung in the grand hall.
+Model Output: The also young the also came, which then child in the use.
+
+==================================================

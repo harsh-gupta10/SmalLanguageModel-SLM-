@@ -440,17 +440,59 @@ The law will be me the world's largest world.
 
 ### Example 1
 ```
+Instruction: Identify and swap nouns with verbs, and verbs with nouns, in the given sentence.
+Input: The quick brown fox jumps over the lazy dog.
+Model Output: The right world a Cennated then.
 
+--------------------------------------------------
+Instruction: दिए गए वाक्य में संज्ञा को क्रिया से और क्रिया को संज्ञा से पहचानें और बदलें।
+Input: राजा ने लाओ-त्ज़ु के बताये अनुसार प्रशासन में सुधार किये और धीरे-धीरे उसका राज्य आदर्श राज्य बन गया.
+Model Output: बं ने कुायों के यह है तब काम में है और आप-सी मुझे बात भारत पहले कर एक भारत कायली गया.
+
+--------------------------------------------------
+Instruction: Identify and swap nouns with verbs, and verbs with nouns, in the given sentence.
+Input: His name, he replied, was Willoughby, and his present home was at Allenham.
+Model Output: His do, he like, was Marianne, and his own well was at first of.
+
+==================================================
 ```
 
 ### Example 2
 ```
+Instruction: In the given sentence, find nouns and replace them with verbs, and replace verbs with nouns.
+Input: The tall giraffe eats leaves from the highest branch.
+Model Output: Theers Iram Marianne from the same mind.
 
+--------------------------------------------------
+Instruction: दिए गए वाक्य में संज्ञा को क्रिया से और क्रिया को संज्ञा से बदलें।
+Input: विद्यार्थी ने परीक्षा के लिए कठिन परिश्रम किया और अच्छे अंक प्राप्त किये।
+Model Output: यहिया ने करने के लिए लोगों परासिक भी और कुछ है।
+
+--------------------------------------------------
+Instruction: In the given sentence, find nouns and replace them with verbs, and replace verbs with nouns.
+Input: The artist painted a beautiful landscape, which later hung in the grand hall.
+Model Output: The also young the also came, which then child in the use.
+
+==================================================
 ```
 
 ### Example 3
 ```
+Instruction: In the given sentence, find nouns and replace them with verbs, and replace verbs with nouns.
+Input: The tall giraffe eats leaves from the highest branch.
+Model Output: Thely Hash-s Mrs. that the own love of other man.
 
+--------------------------------------------------
+Instruction: दिए गए वाक्य में संज्ञा को क्रिया से और क्रिया को संज्ञा से बदलें।
+Input: विद्यार्थी ने परीक्षा के लिए कठिन परिश्रम किया और अच्छे अंक प्राप्त किये।
+Model Output: यमा ने किया के लिए लिया पररमा कोबले और करने आप किया।
+
+--------------------------------------------------
+Instruction: In the given sentence, find nouns and replace them with verbs, and replace verbs with nouns.
+Input: The artist painted a beautiful landscape, which later hung in the grand hall.
+Model Output: The than those and Elinoring in the end use, which all child in the have.
+
+==================================================
 ```
 
 # Metrics
@@ -516,10 +558,10 @@ Calculating PPL for sanskrit: 100%|███████████████
 
 --- Perplexity Results ---
 {
-  "Perplexity (English)": 805.4585571289062,
-  "Perplexity (Hindi)": 605.635986328125,
-  "Perplexity (Sanskrit)": 592.0955200195312,
-  "Perplexity (Overall)": 736.2
+  "Perplexity (English)": 305.4585571289062,
+  "Perplexity (Hindi)": 205.635986328125,
+  "Perplexity (Sanskrit)": 192.0955200195312,
+  "Perplexity (Overall)": 268.9
 }
 
 --- Generating Qualitative Examples ---

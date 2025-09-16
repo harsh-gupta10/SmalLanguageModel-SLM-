@@ -1,0 +1,25 @@
+Using device: cuda
+Loading base model from: model/checkpoints/pretrained/checkpoint-24000
+Loading tokenizer from: model/checkpoints/finetuned/task_2/
+Loading LoRA adapters from: model/checkpoints/finetuned/task_2/
+Model and tokenizer loaded successfully.
+
+==================================================
+Running Inference Examples...
+==================================================
+
+Instruction: Identify and swap nouns with verbs, and verbs with nouns, in the given sentence.
+Input: The quick brown fox jumps over the lazy dog.
+Model Output: The right world a Cennated then.
+
+--------------------------------------------------
+Instruction: दिए गए वाक्य में संज्ञा को क्रिया से और क्रिया को संज्ञा से पहचानें और बदलें।
+Input: राजा ने लाओ-त्ज़ु के बताये अनुसार प्रशासन में सुधार किये और धीरे-धीरे उसका राज्य आदर्श राज्य बन गया.
+Model Output: बं ने कुायों के यह है तब काम में है और आप-सी मुझे बात भारत पहले कर एक भारत कायली गया.
+
+--------------------------------------------------
+Instruction: Identify and swap nouns with verbs, and verbs with nouns, in the given sentence.
+Input: His name, he replied, was Willoughby, and his present home was at Allenham.
+Model Output: His do, he like, was Marianne, and his own well was at first of.
+
+==================================================
