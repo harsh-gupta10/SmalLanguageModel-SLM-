@@ -1,7 +1,7 @@
 import os
 import re
 import gc
-import unicodedata # For more robust script checking
+import unicodedata
 from tqdm import tqdm
 from langdetect import detect, LangDetectException
 from multiprocessing import Pool, cpu_count, Manager # Import Manager here

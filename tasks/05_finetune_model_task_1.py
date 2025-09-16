@@ -7,15 +7,15 @@ import json
 
 from peft import LoraConfig, get_peft_model, TaskType
 
-PRETRAINED_MODEL_PATH = 'model/student_trained/'
+PRETRAINED_MODEL_PATH = 'model/checkpoints/pretrained/checkpoint-24000'
 TOKENIZER_PATH = PRETRAINED_MODEL_PATH
 DATA_FILES = ['finetuning/data/01_fact_decontextualisation_english.jsonl', 'finetuning/data/01_fact_decontextualisation_hindi.jsonl']
 OUTPUT_MODEL_DIR = 'model/checkpoints/finetuned'
 
 # Training Hyperparameters
 LEARNING_RATE = 2e-4 # LoRA can often handle a slightly higher learning rate
-NUM_EPOCHS = 3
-BATCH_SIZE = 4
+NUM_EPOCHS = 20
+BATCH_SIZE = 65
 
 # --- PEFT & LoRA Configuration ---
 LORA_R = 16                # Rank of the update matrices. A higher rank means more parameters.
@@ -190,12 +190,4 @@ def finetune_with_lora():
 
 
 if __name__ == '__main__':
-    # Create dummy files for testing if needed
-    if not os.path.exists('english_data.jsonl'):
-        with open('english_data.jsonl', 'w') as f:
-            f.write('{"sentence": "The dog, a golden retriever, wagged its tail enthusiastically.", "fact": "The dog is a golden retriever."}\n')
-    if not os.path.exists('hindi_data.jsonl'):
-        with open('hindi_data.jsonl', 'w') as f:
-            f.write('{"sentence": "कोविड-19 महामारी के कारण स्कूल अनिश्चित काल के लिए बंद हो गए।", "fact": "कोविड-19 के कारण स्कूल बंद हो गए।"}\n')
-            
     finetune_with_lora()

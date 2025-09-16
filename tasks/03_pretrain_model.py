@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 # 1. Define Project and Model Paths
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 TOKENIZER_DIR = PROJECT_ROOT / "model" / "tokenizer"
-RAW_DATA_DIR = PROJECT_ROOT / "data" / "raw"  # MODIFIED: Point to the raw data directory
+RAW_DATA_DIR = PROJECT_ROOT / "data" / "raw"
 PRETRAINED_CHECKPOINTS_DIR = PROJECT_ROOT / "model" / "checkpoints" / "pretrained"
 LOG_DIR = PRETRAINED_CHECKPOINTS_DIR / "logs"
 
@@ -46,21 +46,21 @@ MODEL_CONFIG = {
 }
 
 # 3. Training Hyperparameters
-# 3. Training Hyperparameters
 TRAINING_ARGS = {
     "output_dir": str(PRETRAINED_CHECKPOINTS_DIR),
     "logging_dir": str(LOG_DIR),
     "report_to": "tensorboard",
     "max_steps": 40000,
-    "per_device_train_batch_size": 8,  # MODIFIED: Drastically reduced batch size
-    "per_device_eval_batch_size": 8,   # MODIFIED: Also reduce for evaluation
-    "gradient_accumulation_steps": 2, # MODIFIED: Increased to keep effective batch size at 32 (2 * 16)
+    "per_device_train_batch_size": 8,
+    "per_device_eval_batch_size": 8,
+    "gradient_accumulation_steps": 2,
     "gradient_checkpointing": True,
     "eval_steps": 2000,
     "save_steps": 2000,
     "save_total_limit": 10,
     "logging_steps": 100,
-    "learning_rate": 5e-5,
+    # MODIFICATION 1: Lower the learning rate to break through the plateau
+    "learning_rate": 2e-5,
     "weight_decay": 0.01,
     "warmup_steps": 1000,
     "lr_scheduler_type": "cosine",
@@ -68,7 +68,8 @@ TRAINING_ARGS = {
     "bf16": MODEL_CONFIG["torch_dtype"] == "bfloat16",
     "optim": "adamw_torch",
     "load_best_model_at_end": False,
-    "overwrite_output_dir": True,
+    # MODIFICATION 2: Set to False to avoid deleting checkpoints on resume
+    "overwrite_output_dir": False,
     "do_train": True,
     "do_eval": True,
 }
@@ -91,19 +92,13 @@ def main():
 
     # --- 1. Load Custom Tokenizer ---
     logger.info(f"Loading tokenizer from directory: {TOKENIZER_DIR}")
-    
-    try:
-        tokenizer = AutoTokenizer.from_pretrained(str(TOKENIZER_DIR), trust_remote_code=True)
-        if tokenizer.pad_token is None:
-            tokenizer.pad_token = tokenizer.eos_token
-            logger.info(f"Set tokenizer pad_token to eos_token: '{tokenizer.eos_token}'")
-        logger.info(f"Tokenizer loaded successfully. Vocab size: {tokenizer.vocab_size}")
-    except Exception as e:
-        logger.error(f"Error loading tokenizer from {TOKENIZER_DIR}. Please ensure 02_train_tokeniser.py "
-                     f"has been run successfully. Error: {e}")
-        raise
+    tokenizer = AutoTokenizer.from_pretrained(str(TOKENIZER_DIR), trust_remote_code=True)
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+    logger.info(f"Tokenizer loaded successfully. Vocab size: {tokenizer.vocab_size}")
 
     # --- 2. Configure and Initialize Model ---
+    # This section remains the same. The Trainer will handle loading the checkpoint weights.
     logger.info("Configuring and initializing Qwen3 model from scratch.")
     config = AutoConfig.from_pretrained(
         "Qwen/Qwen3-0.6B-Base",
@@ -114,25 +109,17 @@ def main():
         bos_token_id=tokenizer.bos_token_id,
         trust_remote_code=True,
     )
-
     model = AutoModelForCausalLM.from_config(config, trust_remote_code=True)
-    
     params = sum(p.numel() for p in model.parameters() if p.requires_grad) / 1_000_000
     logger.info(f"Model initialized with Qwen3 architecture and ~{params:.2f}M trainable parameters.")
-    if not 100 <= params <= 150:
-        logger.warning(
-            f"WARNING: Model parameter count ({params:.2f}M) is outside the target range of 100M-150M."
-        )
 
     # --- 3. Load and Prepare Datasets from Raw Files (Streaming Mode) ---
-    # MODIFIED: Pointing to RAW_DATA_DIR
     raw_files = list(RAW_DATA_DIR.glob("*.txt"))
     if not raw_files:
         raise FileNotFoundError(f"No raw .txt files found in {RAW_DATA_DIR}.")
 
     logger.info("Loading raw text data in STREAMING mode and adding language tags...")
 
-    # Helper function to infer language tag from filename
     def get_lang_tag_from_filename(filepath: Path):
         file_stem = filepath.stem.lower()
         for lang_keyword, tag in LANGUAGE_TAG_MAP.items():
@@ -152,20 +139,15 @@ def main():
             logger.warning(f"Could not infer language for file: {f_path.name}. Skipping this file.")
 
     if not all_streaming_datasets:
-        raise ValueError("No datasets were loaded. Ensure file names contain language keywords (e.g., 'lang_english').")
+        raise ValueError("No datasets were loaded.")
 
-    # Interleave datasets to mix languages. This is the streaming equivalent of concatenating and shuffling.
     dataset = interleave_datasets(all_streaming_datasets)
-    
-    # MODIFIED: Re-enabled shuffling. This is critical for model training.
-    # It shuffles the stream using a buffer to ensure batches contain a mix of languages.
-    dataset = dataset.shuffle(seed=42, buffer_size=10000)
+    # MODIFICATION 3 (Optional but recommended): Increase buffer for better shuffling if you have RAM
+    dataset = dataset.shuffle(seed=42, buffer_size=20000)
 
-    # Create a train/validation split from the stream using .take() and .skip()
-    val_size = 1000  # Use a fixed number of examples for validation
+    val_size = 1000
     eval_dataset = dataset.take(val_size)
     train_dataset = dataset.skip(val_size)
-    
     logger.info(f"Dataset prepared in streaming mode. Using {val_size} examples for validation.")
 
     # --- 4. Tokenize and Group the Dataset ---
@@ -184,17 +166,8 @@ def main():
         result["labels"] = result["input_ids"].copy()
         return result
 
-    lm_train_dataset = train_dataset.map(
-        tokenize_and_group,
-        batched=True,
-        remove_columns=["text"],
-    )
-    lm_eval_dataset = eval_dataset.map(
-        tokenize_and_group,
-        batched=True,
-        remove_columns=["text"],
-    )
-    
+    lm_train_dataset = train_dataset.map(tokenize_and_group, batched=True, remove_columns=["text"])
+    lm_eval_dataset = eval_dataset.map(tokenize_and_group, batched=True, remove_columns=["text"])
     logger.info("Tokenization and grouping mapping is set up for the streams.")
     
     # --- 5. Set up the Trainer ---
@@ -207,16 +180,18 @@ def main():
     )
 
     # --- 6. Start Training ---
-    logger.info("Starting model pretraining...")
+    logger.info("Starting or resuming model pretraining...")
     try:
-        train_result = trainer.train()
+        # MODIFICATION 4: Tell the trainer to resume from the latest checkpoint
+        # It will automatically find `checkpoint-12000` inside your output directory
+        train_result = trainer.train(resume_from_checkpoint=True)
+
         logger.info("Training complete. Saving final model and metrics.")
         trainer.save_model()
         trainer.save_state()
         metrics = train_result.metrics
         trainer.log_metrics("train", metrics)
         trainer.save_metrics("train", metrics)
-        logger.info("Performing final evaluation on the validation set...")
         eval_metrics = trainer.evaluate()
         eval_metrics["eval_samples"] = val_size
         trainer.log_metrics("eval", eval_metrics)

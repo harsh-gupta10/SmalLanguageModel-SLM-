@@ -2,3 +2,4 @@ data/
 *.safetensors
 logs/
 checkpoints/
+nltk_data/

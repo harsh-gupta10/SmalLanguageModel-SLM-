@@ -10,7 +10,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 # Point MODEL_DIR directly to the specific checkpoint
 # I've updated this to checkpoint-8000 to match your latest test
-MODEL_DIR = PROJECT_ROOT / "model" / "checkpoints" / "pretrained" / "checkpoint-12000"
+MODEL_DIR = PROJECT_ROOT / "model" / "checkpoints" / "pretrained" / "checkpoint-24000"
 
 # The tokenizer directory
 TOKENIZER_DIR = PROJECT_ROOT / "model" / "tokenizer"
