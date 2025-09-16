@@ -1,113 +1,129 @@
+import os
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from peft import PeftModel
-import os
 
 # --- Configuration ---
-# Path to the original, non-fine-tuned base model
-BASE_MODEL_PATH = 'model/checkpoints/pretrained/checkpoint-24000' 
-# Path to the directory where your LoRA adapters are saved
-PEFT_MODEL_PATH = 'model/checkpoints/finetuned'
+# 1. Path to the original base model
+BASE_MODEL_PATH = 'model/checkpoints/pretrained/checkpoint-24000'
+
+# 2. Path to the trained LoRA adapters for your noun-verb swap task
+ADAPTER_PATH = 'model/checkpoints/finetuned/task_2/'
+
+# The tokenizer is also loaded from the adapter path for consistency
+TOKENIZER_PATH = ADAPTER_PATH
 
 # --- Prompt Template (MUST match the one used in training) ---
 PROMPT_TEMPLATE = """### Instruction:
-Extract a standalone fact from the following sentence.
+{instruction}
 
 ### Input:
-{sentence}
+{input}
 
 ### Response:
 """
 
-def extract_fact(model, tokenizer, sentence: str, device: str):
+def load_model_for_inference(base_model_path, adapter_path, tokenizer_path):
     """
-    This function takes a sentence, formats it with the prompt template,
-    and returns the fact extracted by the model.
+    Loads the base model, applies the LoRA adapters, and prepares it for inference.
     """
-    # 1. Format the prompt
-    prompt = PROMPT_TEMPLATE.format(sentence=sentence)
-    
-    # 2. Tokenize the prompt
-    inputs = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=512)
-    input_ids = inputs["input_ids"].to(device)
-    
-    # 3. Generate a response from the model
-    model.eval() 
-    with torch.no_grad():
-        outputs = model.generate(
-            input_ids=input_ids,
-            max_new_tokens=128,
-            eos_token_id=tokenizer.eos_token_id,
-            pad_token_id=tokenizer.pad_token_id,
-            temperature=0.7,
-            do_sample=True
-        )
-
-    # 4. Decode ONLY the newly generated tokens
-    # This is the key change to fix the repeated prompt issue.
-    # We slice the output tensor to exclude the original input tokens.
-    input_length = input_ids.shape[1]
-    generated_token_ids = outputs[0][input_length:]
-    
-    # 5. Decode the generated tokens into text
-    clean_response = tokenizer.decode(generated_token_ids, skip_special_tokens=True).strip()
-    
-    return clean_response
-
-
-def main():
-    """
-    Main function to load the model and run inference on example sentences.
-    """
-    # --- Device Setup ---
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
 
-    # --- Load Base Model and Tokenizer ---
-    print(f"Loading base model from: {BASE_MODEL_PATH}")
-    base_model = AutoModelForCausalLM.from_pretrained(BASE_MODEL_PATH)
-    
-    # Load the tokenizer from the LoRA adapter directory for consistency
-    tokenizer = AutoTokenizer.from_pretrained(PEFT_MODEL_PATH) 
+    # Load the base model
+    print(f"Loading base model from: {base_model_path}")
+    base_model = AutoModelForCausalLM.from_pretrained(
+        base_model_path,
+        torch_dtype=torch.float16, # Use float16 for faster inference if your GPU supports it
+        device_map="auto"
+    )
+
+    # Load the tokenizer
+    print(f"Loading tokenizer from: {tokenizer_path}")
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
-        base_model.config.pad_token_id = base_model.config.eos_token_id
 
-    # --- Load and Apply LoRA Adapters ---
-    print(f"Loading LoRA adapters from: {PEFT_MODEL_PATH}")
-    # This automatically merges the LoRA weights with the base model for inference
-    model = PeftModel.from_pretrained(base_model, PEFT_MODEL_PATH)
-    model = model.to(device)
+    # Load the PEFT model (LoRA adapters) and merge it with the base model
+    print(f"Loading LoRA adapters from: {adapter_path}")
+    model = PeftModel.from_pretrained(base_model, adapter_path)
     
-    print("\nModel ready for inference!")
+    # The model is already on the device due to device_map="auto"
+    model.eval() # Set the model to evaluation mode
+    print("Model and tokenizer loaded successfully.")
+    
+    return model, tokenizer, device
 
-    # --- Example Usage ---
+def generate_swap_response(model, tokenizer, instruction, input_text):
+    """
+    Formats the prompt, generates a response from the model, and parses the output.
+    """
+    # 1. Format the prompt
+    prompt = PROMPT_TEMPLATE.format(instruction=instruction, input=input_text)
     
-    # English example
-    # english_sentence = "The sun, a star at the center of the Solar System, is a nearly perfect sphere of hot plasma."
-    english_sentence = "She enjoys painting landscapes in her free time"
-    extracted_english_fact = extract_fact(model, tokenizer, english_sentence, device)
-    print("-" * 20)
-    print(f"Original English Sentence:\n{english_sentence}")
-    print(f"\nExtracted Fact:\n{extracted_english_fact}")
-    print("-" * 20)
+    # 2. Tokenize the prompt
+    inputs = tokenizer(prompt, return_tensors="pt", return_attention_mask=True)
+    inputs = {k: v.to(model.device) for k, v in inputs.items()}
     
-    # Hindi example
-    hindi_sentence = "ताजमहल, जो भारत के आगरा शहर में स्थित एक हाथीदांत-सफेद संगमरमर का मकबरा है, को मुगल सम्राट शाहजहाँ ने अपनी पसंदीदा पत्नी मुमताज महल की याद में बनवाया था।"
-    extracted_hindi_fact = extract_fact(model, tokenizer, hindi_sentence, device)
-    print("-" * 20)
-    print(f"Original Hindi Sentence:\n{hindi_sentence}")
-    print(f"\nExtracted Fact:\n{extracted_hindi_fact}")
-    print("-" * 20)
-
-    # Your own sentence
-    custom_sentence = "Python, a high-level, general-purpose programming language, was created by Guido van Rossum and first released in 1991."
-    extracted_custom_fact = extract_fact(model, tokenizer, custom_sentence, device)
-    print("-" * 20)
-    print(f"Original Custom Sentence:\n{custom_sentence}")
-    print(f"\nExtracted Fact:\n{extracted_custom_fact}")
-    print("-" * 20)
+    # 3. Generate the output
+    with torch.no_grad():
+        outputs = model.generate(
+            **inputs,
+            max_new_tokens=150,
+            do_sample=True,
+            top_p=0.9,
+            temperature=0.7,
+            pad_token_id=tokenizer.eos_token_id
+        )
+    
+    # 4. Decode and parse the response
+    # The output contains the original prompt, so we need to slice it off
+    decoded_output = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    response_start_index = decoded_output.find("### Response:") + len("### Response:")
+    parsed_response = decoded_output[response_start_index:].strip()
+    
+    return parsed_response
 
 
 if __name__ == '__main__':
-    main()
+    # Load the fine-tuned model and tokenizer
+    model, tokenizer, device = load_model_for_inference(
+        BASE_MODEL_PATH, ADAPTER_PATH, TOKENIZER_PATH
+    )
+
+    # --- Test with some examples ---
+    print("\n" + "="*50)
+    print("Running Inference Examples...")
+    print("="*50 + "\n")
+
+    # Example 1: English
+    english_instruction = "Identify and swap nouns with verbs, and verbs with nouns, in the given sentence."
+    english_input = "The quick brown fox jumps over the lazy dog."
+    
+    print(f"Instruction: {english_instruction}")
+    print(f"Input: {english_input}")
+    
+    english_output = generate_swap_response(model, tokenizer, english_instruction, english_input)
+    print(f"Model Output: {english_output}\n")
+    print("-"*50)
+
+    # Example 2: Hindi
+    hindi_instruction = "दिए गए वाक्य में संज्ञा को क्रिया से और क्रिया को संज्ञा से पहचानें और बदलें।"
+    hindi_input = "राजा ने लाओ-त्ज़ु के बताये अनुसार प्रशासन में सुधार किये और धीरे-धीरे उसका राज्य आदर्श राज्य बन गया."
+    
+    print(f"Instruction: {hindi_instruction}")
+    print(f"Input: {hindi_input}")
+    
+    hindi_output = generate_swap_response(model, tokenizer, hindi_instruction, hindi_input)
+    print(f"Model Output: {hindi_output}\n")
+    print("-"*50)
+    
+    # Example 3: Another English example from your dataset
+    english_input_2 = "His name, he replied, was Willoughby, and his present home was at Allenham."
+    
+    print(f"Instruction: {english_instruction}")
+    print(f"Input: {english_input_2}")
+    
+    english_output_2 = generate_swap_response(model, tokenizer, english_instruction, english_input_2)
+    print(f"Model Output: {english_output_2}\n")
+    print("="*50)

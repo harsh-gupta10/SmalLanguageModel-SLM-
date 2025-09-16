@@ -1,0 +1,77 @@
+(edmp) skills@enigma:~/ansh/dataset_gen/delme/ds_gen$ python3 tasks/04_finetune_model_task_2.py
+/home/skills/miniconda3/envs/edmp/lib/python3.9/site-packages/requests/__init__.py:86: RequestsDependencyWarning: Unable to find acceptable character detection dependency (chardet or charset_normalizer).
+  warnings.warn(
+Using device: cuda
+Loading base model from: model/checkpoints/pretrained/checkpoint-24000
+
+Initializing LoRA...
+
+Model architecture with LoRA adapters:
+trainable params: 884736 || all params: 167043072 || trainable%: 0.53
+Loading and processing data for the new task...
+Loaded 3937 samples from 02_english.json
+Loaded 5000 samples from 02_hindi.json
+Fine-Tuning with LoRA:   0%|                                                                                                         | 0/7460 [00:00<?, ?it/s]
+--- Epoch 1/20 ---
+Epoch 1, Loss: 6.2085:   5%|████▊                                                                                          | 373/7460 [01:12<27:40,  4.27it/s]Average Loss for Epoch 1: 6.3313
+
+--- Epoch 2/20 ---
+Epoch 2, Loss: 5.9950:  10%|█████████▌                                                                                     | 746/7460 [02:25<20:48,  5.38it/s]Average Loss for Epoch 2: 6.0679
+
+--- Epoch 3/20 ---
+Epoch 3, Loss: 6.1636:  15%|██████████████                                                                                | 1119/7460 [03:37<16:05,  6.57it/s]Average Loss for Epoch 3: 5.9106
+
+--- Epoch 4/20 ---
+Epoch 4, Loss: 5.6550:  20%|██████████████████▊                                                                           | 1492/7460 [04:50<19:16,  5.16it/s]Average Loss for Epoch 4: 5.7434
+
+--- Epoch 5/20 ---
+Epoch 5, Loss: 5.4464:  25%|███████████████████████▌                                                                      | 1865/7460 [06:03<18:27,  5.05it/s]Average Loss for Epoch 5: 5.5134
+
+--- Epoch 6/20 ---
+Epoch 6, Loss: 5.1403:  30%|████████████████████████████▏                                                                 | 2238/7460 [07:15<22:32,  3.86it/s]Average Loss for Epoch 6: 5.2557
+
+--- Epoch 7/20 ---
+Epoch 7, Loss: 5.2026:  35%|████████████████████████████████▉                                                             | 2611/7460 [08:29<13:41,  5.91it/s]Average Loss for Epoch 7: 5.0559
+
+--- Epoch 8/20 ---
+Epoch 8, Loss: 4.6385:  40%|█████████████████████████████████████▌                                                        | 2984/7460 [09:42<14:29,  5.15it/s]Average Loss for Epoch 8: 4.8989
+
+--- Epoch 9/20 ---
+Epoch 9, Loss: 4.3015:  45%|██████████████████████████████████████████▎                                                   | 3357/7460 [10:55<12:58,  5.27it/s]Average Loss for Epoch 9: 4.7766
+
+--- Epoch 10/20 ---
+Epoch 10, Loss: 5.1335:  50%|██████████████████████████████████████████████▌                                              | 3730/7460 [12:08<11:29,  5.41it/s]Average Loss for Epoch 10: 4.6807
+
+--- Epoch 11/20 ---
+Epoch 11, Loss: 4.5715:  55%|███████████████████████████████████████████████████▏                                         | 4103/7460 [13:21<10:46,  5.19it/s]Average Loss for Epoch 11: 4.6012
+
+--- Epoch 12/20 ---
+Epoch 12, Loss: 4.8096:  60%|███████████████████████████████████████████████████████▊                                     | 4476/7460 [14:33<09:51,  5.04it/s]Average Loss for Epoch 12: 4.5388
+
+--- Epoch 13/20 ---
+Epoch 13, Loss: 4.4362:  65%|████████████████████████████████████████████████████████████▍                                | 4849/7460 [15:47<08:09,  5.34it/s]Average Loss for Epoch 13: 4.4802
+
+--- Epoch 14/20 ---
+Epoch 14, Loss: 4.5926:  70%|█████████████████████████████████████████████████████████████████                            | 5222/7460 [17:00<07:03,  5.29it/s]Average Loss for Epoch 14: 4.4407
+
+--- Epoch 15/20 ---
+Epoch 15, Loss: 4.2650:  75%|█████████████████████████████████████████████████████████████████████▊                       | 5595/7460 [18:13<05:27,  5.70it/s]Average Loss for Epoch 15: 4.4014
+
+--- Epoch 16/20 ---
+Epoch 16, Loss: 4.8583:  80%|██████████████████████████████████████████████████████████████████████████▍                  | 5968/7460 [19:26<04:17,  5.79it/s]Average Loss for Epoch 16: 4.3732
+
+--- Epoch 17/20 ---
+Epoch 17, Loss: 4.3146:  85%|███████████████████████████████████████████████████████████████████████████████              | 6341/7460 [20:39<03:59,  4.67it/s]Average Loss for Epoch 17: 4.3456
+
+--- Epoch 18/20 ---
+Epoch 18, Loss: 4.3694:  90%|███████████████████████████████████████████████████████████████████████████████████▋         | 6714/7460 [21:51<02:36,  4.77it/s]Average Loss for Epoch 18: 4.3271
+
+--- Epoch 19/20 ---
+Epoch 19, Loss: 4.0933:  95%|████████████████████████████████████████████████████████████████████████████████████████▎    | 7087/7460 [23:04<01:11,  5.21it/s]Average Loss for Epoch 19: 4.3124
+
+--- Epoch 20/20 ---
+Epoch 20, Loss: 4.0825: 100%|█████████████████████████████████████████████████████████████████████████████████████████████| 7460/7460 [24:17<00:00,  5.09it/s]Average Loss for Epoch 20: 4.2996
+
+Fine-tuning finished! Saving LoRA adapters to model/checkpoints/finetuned/task_2/
+Adapters and tokenizer saved successfully.
+Epoch 20, Loss: 4.0825: 100%|█████████████████████████████████████████████████████████████████████████████████████████████| 7460/7460 [24:17<00:00,  5.12it/s]
