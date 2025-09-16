@@ -591,3 +591,7 @@ Cleaned Generated Text:
 # Dataset and Checkpoints
 
 Find all of them at: [Dataset and Checkpoints](https://drive.google.com/drive/folders/1x4cwzqUWFCT_yP7NQogkQI9TtFsgXI7J?usp=sharing)
+
+More at: [https://anshium.github.io/minimalist/projects/courses/lma/mini-project](https://anshium.github.io/minimalist/projects/courses/lma/mini-project)
+
+<hr>
