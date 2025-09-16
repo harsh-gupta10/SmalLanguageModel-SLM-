@@ -65,55 +65,17 @@ def generate_swap_response(model, tokenizer, instruction, input_text):
     return parsed_response
 
 
-# if __name__ == '__main__':
-#     model, tokenizer, device = load_model_for_inference(
-#         BASE_MODEL_PATH, ADAPTER_PATH, TOKENIZER_PATH
-#     )
-
-#     print("\n" + "="*50)
-#     print("Running Inference Examples...")
-#     print("="*50 + "\n")
-
-#     english_instruction = "Identify and swap nouns with verbs, and verbs with nouns, in the given sentence."
-#     english_input = "The quick brown fox jumps over the lazy dog."
-    
-#     print(f"Instruction: {english_instruction}")
-#     print(f"Input: {english_input}")
-    
-#     english_output = generate_swap_response(model, tokenizer, english_instruction, english_input)
-#     print(f"Model Output: {english_output}\n")
-#     print("-"*50)
-
-#     hindi_instruction = "दिए गए वाक्य में संज्ञा को क्रिया से और क्रिया को संज्ञा से पहचानें और बदलें।"
-#     hindi_input = "राजा ने लाओ-त्ज़ु के बताये अनुसार प्रशासन में सुधार किये और धीरे-धीरे उसका राज्य आदर्श राज्य बन गया."
-    
-#     print(f"Instruction: {hindi_instruction}")
-#     print(f"Input: {hindi_input}")
-    
-#     hindi_output = generate_swap_response(model, tokenizer, hindi_instruction, hindi_input)
-#     print(f"Model Output: {hindi_output}\n")
-#     print("-"*50)
-    
-#     english_input_2 = "His name, he replied, was Willoughby, and his present home was at Allenham."
-    
-#     print(f"Instruction: {english_instruction}")
-#     print(f"Input: {english_input_2}")
-    
-#     english_output_2 = generate_swap_response(model, tokenizer, english_instruction, english_input_2)
-#     print(f"Model Output: {english_output_2}\n")
-#     print("="*50)
-
 if __name__ == '__main__':
     model, tokenizer, device = load_model_for_inference(
         BASE_MODEL_PATH, ADAPTER_PATH, TOKENIZER_PATH
     )
 
     print("\n" + "="*50)
-    print("Running Inference Demonstrations...")
+    print("Running Inference Examples...")
     print("="*50 + "\n")
 
-    english_instruction = "In the given sentence, find nouns and replace them with verbs, and replace verbs with nouns."
-    english_input = "The tall giraffe eats leaves from the highest branch."
+    english_instruction = "Identify and swap nouns with verbs, and verbs with nouns, in the given sentence."
+    english_input = "The quick brown fox jumps over the lazy dog."
     
     print(f"Instruction: {english_instruction}")
     print(f"Input: {english_input}")
@@ -122,8 +84,8 @@ if __name__ == '__main__':
     print(f"Model Output: {english_output}\n")
     print("-"*50)
 
-    hindi_instruction = "दिए गए वाक्य में संज्ञा को क्रिया से और क्रिया को संज्ञा से बदलें।"
-    hindi_input = "विद्यार्थी ने परीक्षा के लिए कठिन परिश्रम किया और अच्छे अंक प्राप्त किये।"
+    hindi_instruction = "दिए गए वाक्य में संज्ञा को क्रिया से और क्रिया को संज्ञा से पहचानें और बदलें।"
+    hindi_input = "राजा ने लाओ-त्ज़ु के बताये अनुसार प्रशासन में सुधार किये और धीरे-धीरे उसका राज्य आदर्श राज्य बन गया."
     
     print(f"Instruction: {hindi_instruction}")
     print(f"Input: {hindi_input}")
@@ -132,7 +94,7 @@ if __name__ == '__main__':
     print(f"Model Output: {hindi_output}\n")
     print("-"*50)
     
-    english_input_2 = "The artist painted a beautiful landscape, which later hung in the grand hall."
+    english_input_2 = "His name, he replied, was Willoughby, and his present home was at Allenham."
     
     print(f"Instruction: {english_instruction}")
     print(f"Input: {english_input_2}")
@@ -140,3 +102,41 @@ if __name__ == '__main__':
     english_output_2 = generate_swap_response(model, tokenizer, english_instruction, english_input_2)
     print(f"Model Output: {english_output_2}\n")
     print("="*50)
+
+# if __name__ == '__main__':
+#     model, tokenizer, device = load_model_for_inference(
+#         BASE_MODEL_PATH, ADAPTER_PATH, TOKENIZER_PATH
+#     )
+
+#     print("\n" + "="*50)
+#     print("Running Inference Demonstrations...")
+#     print("="*50 + "\n")
+
+#     english_instruction = "In the given sentence, find nouns and replace them with verbs, and replace verbs with nouns."
+#     english_input = "The tall giraffe eats leaves from the highest branch."
+    
+#     print(f"Instruction: {english_instruction}")
+#     print(f"Input: {english_input}")
+    
+#     english_output = generate_swap_response(model, tokenizer, english_instruction, english_input)
+#     print(f"Model Output: {english_output}\n")
+#     print("-"*50)
+
+#     hindi_instruction = "दिए गए वाक्य में संज्ञा को क्रिया से और क्रिया को संज्ञा से बदलें।"
+#     hindi_input = "विद्यार्थी ने परीक्षा के लिए कठिन परिश्रम किया और अच्छे अंक प्राप्त किये।"
+    
+#     print(f"Instruction: {hindi_instruction}")
+#     print(f"Input: {hindi_input}")
+    
+#     hindi_output = generate_swap_response(model, tokenizer, hindi_instruction, hindi_input)
+#     print(f"Model Output: {hindi_output}\n")
+#     print("-"*50)
+    
+#     english_input_2 = "The artist painted a beautiful landscape, which later hung in the grand hall."
+    
+#     print(f"Instruction: {english_instruction}")
+#     print(f"Input: {english_input_2}")
+    
+#     english_output_2 = generate_swap_response(model, tokenizer, english_instruction, english_input_2)
+#     print(f"Model Output: {english_output_2}\n")
+#     print("="*50)
