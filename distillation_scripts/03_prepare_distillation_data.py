@@ -6,31 +6,24 @@ from torch.utils.data import IterableDataset, DataLoader
 import json
 from tqdm.auto import tqdm
 import torch.nn.functional as F
-import gc # Import garbage collector
-import random # For sampling
+import gc
+import random
 
-# --- Configuration ---
 RAW_DATA_DIR = 'data/raw'
-TOKENIZER_MODEL_PATH = 'model/tokenizer/multilingual_spm.model' # Still points to the raw .model file
-TEACHER_MODEL_PATH = 'model/teacher/' # Path to your downloaded Qwen3-0.6B
+TOKENIZER_MODEL_PATH = 'model/tokenizer/multilingual_spm.model'
+TEACHER_MODEL_PATH = 'model/teacher/'
 OUTPUT_DATA_DIR = 'data/processed/'
-MAX_SEQUENCE_LENGTH = 128 # Keep this reduced (consider 256 if needed)
+MAX_SEQUENCE_LENGTH = 128
 
-# --- Sampling Parameters ---
 SAMPLE_PROBABILITY = 0.01
 
-# --- Batching Parameters ---
-BATCH_SIZE_TEACHER_INFERENCE = 8 # *** Increased for better GPU utilization *** (Try 16 if VRAM allows, but carefully)
-MAX_RAM_FOR_LOGITS_GB = 6 # *** CRITICAL: Max GB of RAM to use for accumulating logits before saving ***
+BATCH_SIZE_TEACHER_INFERENCE = 8
+MAX_RAM_FOR_LOGITS_GB = 6
 
 
-# --- Generator for Raw Text Data with Sampling ---
 def raw_text_generator_with_sampling(raw_data_dir, input_file_names, sample_probability):
-    """Yields sentences from all input files, one by one, with random sampling,
-       prefixing them with language tokens."""
     print(f"Streaming raw text data from {raw_data_dir} with sample probability {sample_probability}...")
 
-    # Map file names to their corresponding language tokens
     lang_map = {
         'lang_english.txt': '<en>',
         'lang_hindi.txt': '<hi>',
@@ -39,7 +32,7 @@ def raw_text_generator_with_sampling(raw_data_dir, input_file_names, sample_prob
 
     for f_name in input_file_names:
         f_path = os.path.join(raw_data_dir, f_name)
-        lang_token = lang_map.get(f_name, '') # Get the correct language token
+        lang_token = lang_map.get(f_name, '')
         if not lang_token:
             print(f"Warning: No language token defined for file {f_name}. Skipping.")
             continue
@@ -52,16 +45,14 @@ def raw_text_generator_with_sampling(raw_data_dir, input_file_names, sample_prob
                 if random.random() < sample_probability:
                     line = line.strip()
                     if line:
-                        # Prepend the language token to the sentence before encoding
                         yield f"{lang_token} {line}"
                         
-# --- Iterable Dataset for Teacher Inference ---
 class InferenceIterableDataset(IterableDataset):
     def __init__(self, raw_text_gen, tokenizer_processor, max_seq_len):
         self.raw_text_gen = raw_text_gen
         self.sp = tokenizer_processor
         self.max_seq_len = max_seq_len
-        self.estimated_total_sampled = 0 # To track how many we've yielded
+        self.estimated_total_sampled = 0
 
     def __iter__(self):
         for text in self.raw_text_gen:
@@ -79,7 +70,6 @@ def prepare_distillation_data():
 
     input_file_names = ['lang_english.txt', 'lang_hindi.txt', 'lang_sanskrit.txt']
     
-    # Estimate total number of sentences for tqdm progress bar (before sampling)
     total_raw_sentences = 0
     for f_name in input_file_names:
         f_path = os.path.join(RAW_DATA_DIR, f_name)
@@ -91,14 +81,10 @@ def prepare_distillation_data():
     print(f"Estimated total raw sentences: {total_raw_sentences}")
     print(f"Estimated number of sampled sentences for distillation: {estimated_sampled_sentences}")
 
-
-    # Create the generator for raw texts with sampling
     text_gen = raw_text_generator_with_sampling(RAW_DATA_DIR, input_file_names, SAMPLE_PROBABILITY)
     
-    # Create the iterable dataset
     inference_dataset = InferenceIterableDataset(text_gen, sp, MAX_SEQUENCE_LENGTH)
 
-    # Custom collate function for DataLoader
     def teacher_collate_fn(batch):
         max_len = max(len(item) for item in batch)
         padded_input_ids = []
@@ -118,7 +104,7 @@ def prepare_distillation_data():
         batch_size=BATCH_SIZE_TEACHER_INFERENCE,
         shuffle=False,
         collate_fn=teacher_collate_fn,
-        num_workers=0 # Keep at 0 for IterableDataset unless you handle worker init well
+        num_workers=0
     )
 
     print("Loading Qwen3-0.6B teacher model...")
@@ -133,14 +119,14 @@ def prepare_distillation_data():
             else:
                 teacher_dtype = torch.float16
                 print("Using float16 for teacher model weights.")
-        else: # On CPU, use float32 for stability and performance (Colab's CPU is slow for half-precision)
+        else:
             teacher_dtype = torch.float32 
             print("Using float32 for teacher model weights (on CPU).")
 
         teacher_model = AutoModelForCausalLM.from_pretrained(
             TEACHER_MODEL_PATH,
             torch_dtype=teacher_dtype,
-            trust_remote_code=True # Added for consistency with pretrain_model.py for Qwen models
+            trust_remote_code=True
         )
     except Exception as e:
         print(f"Error loading teacher model from {TEACHER_MODEL_PATH}: {e}")
@@ -157,12 +143,9 @@ def prepare_distillation_data():
     original_tokenized_ids_current_group = []
     chunk_file_idx = 0
 
-    # Calculate optimal BATCHES_PER_SAVE based on MAX_RAM_FOR_LOGITS_GB
     logit_size_per_sequence_float32_MB = MAX_SEQUENCE_LENGTH * teacher_model.config.vocab_size * 4 / (1024**2) # 4 bytes for float32
     max_sequences_in_ram = int(MAX_RAM_FOR_LOGITS_GB * 1024 / logit_size_per_sequence_float32_MB)
     
-    # Ensure at least one batch is saved at a time.
-    # batches_per_save = max(1, max_sequences_in_ram // BATCH_SIZE_TEACHER_INFERENCE)
     batches_per_save = 10 # Retaining your fixed value.
 
     
@@ -180,7 +163,7 @@ def prepare_distillation_data():
 
         with torch.no_grad():
             outputs = teacher_model(input_ids=input_ids, attention_mask=attention_mask)
-            logits = outputs.logits # Shape: (batch_size, seq_len, vocab_size)
+            logits = outputs.logits
 
             if batch_idx == 0:
                  print(f"Size of single logit tensor (on {device}, bfloat16 for logit, float32 for storage): {logits.element_size() * logits.nelement() / (1024**2):.2f} MB (GPU output)")
@@ -213,7 +196,6 @@ def prepare_distillation_data():
                 torch.cuda.empty_cache() 
             gc.collect() 
 
-    # Save any remaining items in the last partial group
     if len(original_tokenized_ids_current_group) > 0:
         chunk_idx_str = str(chunk_file_idx).zfill(6) 
         torch.save(original_tokenized_ids_current_group, os.path.join(OUTPUT_DATA_DIR, f'distillation_input_ids_chunk_{chunk_idx_str}.pt'))

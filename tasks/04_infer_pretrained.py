@@ -58,7 +58,6 @@ text_generator = pipeline(
 #     "Hindi": "<hi>कृत्रिम बुद्धिमत्ता का भविष्य",
 #     "Sanskrit": "<sa>कृत्रिमप्रज्ञायाः भविष्यम्"
 # }
-
 # prompts = {
 #     "English": "<en>The sun rises in the",
 #     "Hindi": "<hi>सूरज उगता है",

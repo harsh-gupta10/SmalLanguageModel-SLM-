@@ -33,15 +33,24 @@ Fortunately, I was able to get the data for these three languages because of the
 
 These three data sources were enough to provide sufficient sources.
 
-The approximate token counts for the above languages are:
+The token counts for the above languages are:
 
-> `!Fill This`
+**English:** `1697.12M` <br>
+**Hindi:** `540.52M` <br>
+**Sanskrit:** `216.50M`
 
 The file sizes of all the languages are:
 
-1. English: `!Fill This`
-2. Hindi: `!Fill This`
-3. Sanskrit: `!Fill This`
+1. English: `6589.23 MB`
+2. Hindi: `4561.78 MB`
+3. Sanskrit: `1520.55 MB`
+
+Number of Sentences/Lines:
+
+1. English: `35309702`
+2. Hindi: `9386954`
+3. Sanskrit: `1951518`
+
 
 The file for dataset gathering is: [tasks/00_get_data.py](tasks/00_get_data.py).
 
@@ -350,23 +359,81 @@ Cleaned Generated Text:
 ## Finetuning
 
 ### Task 1
-```
-
-```
 
 ### Example 1
 ```
+--------------------
+Original English Sentence:
+She enjoys painting landscapes in her free time
+
+Extracted Fact:
+The first employees are a best of United disease.
+--------------------
+--------------------
+Original Hindi Sentence:
+ताजमहल, जो भारत के आगरा शहर में स्थित एक हाथीदांत-सफेद संगमरमर का मकबरा है, को मुगल सम्राट शाहजहाँ ने अपनी पसंदीदा पत्नी मुमताज महल की याद में बनवाया था।
+
+Extracted Fact:
+चोजना मनिपा का एक वविमला एक साथ ही दीता है।
+--------------------
+--------------------
+Original Custom Sentence:
+The mall, which opened in 2005, is the largest shopping center in the city.
+
+Extracted Fact:
+The book is a new way of the world.
+--------------------
 
 ```
 
 ### Example 2
 ```
+--------------------
+Original English Sentence:
+She enjoys painting landscapes in her free time
 
+Extracted Fact:
+The first lot of first than king product.
+--------------------
+--------------------
+Original Hindi Sentence:
+ताजमहल, जो भारत के आगरा शहर में स्थित एक हाथीदांत-सफेद संगमरमर का मकबरा है, को मुगल सम्राट शाहजहाँ ने अपनी पसंदीदा पत्नी मुमताज महल की याद में बनवाया था।
+
+Extracted Fact:
+कोसिसिया ने एक बबलेस में देश में भी खँगरे के लिए एक वशारकह के आति-निसर के साथ पिनक हैं।
+--------------------
+--------------------
+Original Custom Sentence:
+The mall, which opened in 2005, is the largest shopping center in the city.
+
+Extracted Fact:
+The park has a new best book.
+--------------------
 ```
 
 ### Example 3
 ```
+--------------------
+Original English Sentence:
+She enjoys painting landscapes in her free time
 
+Extracted Fact:
+The first love need the first employees.
+--------------------
+--------------------
+Original Hindi Sentence:
+ताजमहल, जो भारत के आगरा शहर में स्थित एक हाथीदांत-सफेद संगमरमर का मकबरा है, को मुगल सम्राट शाहजहाँ ने अपनी पसंदीदा पत्नी मुमताज महल की याद में बनवाया था।
+
+Extracted Fact:
+जविलल विचत के खिलाफ एक ही देश है।
+--------------------
+--------------------
+Original Custom Sentence:
+The mall, which opened in 2005, is the largest shopping center in the city.
+
+Extracted Fact:
+The law will be me the world's largest world.
+--------------------
 ```
 
 ### Task 2
@@ -388,6 +455,97 @@ Cleaned Generated Text:
 
 # Metrics
 
-## Perplexity
+## Data and Tokenizer Statistics
 
-## Other Metrics...
+```json
+Found train file for english: /home/skills/ansh/dataset_gen/delme/ds_gen/data/processed/train_english.txt
+Tokenizing train_english.txt: 35309702 lines [26:55, 21860.26 lines/s]
+Found train file for hindi: /home/skills/ansh/dataset_gen/delme/ds_gen/data/processed/train_hindi.txt
+Tokenizing train_hindi.txt: 9386954 lines [09:19, 16777.74 lines/s]
+Found train file for sanskrit: /home/skills/ansh/dataset_gen/delme/ds_gen/data/processed/train_sanskrit.txt
+Tokenizing train_sanskrit.txt: 1951518 lines [02:46, 11730.45 lines/s]
+
+
+--- EVALUATION REPORT ---
+{
+  "Model Statistics": {
+    "Total Parameters": "166.16M",
+    "Trainable Parameters": "166.16M",
+    "Model Architecture": "qwen3",
+    "Number of Layers": 12,
+    "Hidden Size": 768,
+    "Number of Attention Heads": 12,
+    "Vocabulary Size (from model config)": 32003
+  },
+  "Tokenizer": {
+    "Class": "LlamaTokenizerFast",
+    "Vocabulary Size": 32003
+  },
+  "Dataset (Train Split)": {
+    "English": {
+      "File Size (MB)": "6589.23",
+      "Number of Sentences/Lines": 35309702,
+      "Number of Tokens": "1697.12M"
+    },
+    "Hindi": {
+      "File Size (MB)": "4561.78",
+      "Number of Sentences/Lines": 9386954,
+      "Number of Tokens": "540.52M"
+    },
+    "Sanskrit": {
+      "File Size (MB)": "1520.55",
+      "Number of Sentences/Lines": 1951518,
+      "Number of Tokens": "216.50M"
+    }
+  }
+}
+```
+
+## Perplexity Calculation
+```
+--- Starting Perplexity Calculation ---
+
+Evaluating on English test set...
+Calculating PPL for english: 100%|█████████████████████████████████████████████████████████████████████████████████████▉| 33172/33176 [08:14<00:00, 67.04it/s]
+
+Evaluating on Hindi test set...
+Calculating PPL for hindi: 100%|███████████████████████████████████████████████████████████████████████████████████████▉| 10626/10630 [02:38<00:00, 67.05it/s]
+
+Evaluating on Sanskrit test set...
+Calculating PPL for sanskrit: 100%|██████████████████████████████████████████████████████████████████████████████████████▉| 4231/4235 [01:03<00:00, 66.99it/s]
+
+--- Perplexity Results ---
+{
+  "Perplexity (English)": 805.4585571289062,
+  "Perplexity (Hindi)": 605.635986328125,
+  "Perplexity (Sanskrit)": 592.0955200195312,
+  "Perplexity (Overall)": 736.2
+}
+
+--- Generating Qualitative Examples ---
+Device set to use cuda:0
+
+--- Language: English ---
+Prompt: <en>Once upon a time in a land of algorithms,
+
+Cleaned Generated Text:
+Once upon a time in a land of algorithms, the most of the first are not be able to get you. I have find that their other year or can like to be out about he did this as the home and that's not too of the world on his new school
+
+--- Language: Hindi ---
+Prompt: <hi>एक समय की बात है, डिजिटल दुनिया में
+
+Cleaned Generated Text:
+एक समय की बात है, डिजिटल दुनिया में अबकरक के साथ सकती। - " – : “ “”
+
+--- Language: Sanskrit ---
+Prompt: <sa>कदाचित्कालः आसीत्, यत्र संगणकाः
+
+Cleaned Generated Text:
+कदाचित्कालः आसीत्, यत्र संगणकाः, तदवौ । - ↑ अप्रिकमश्यादस्य "तस्म्रति" । 'अधुभं' इति सर्वभूतम् ।
+
+--- Evaluation Complete ---
+```
+
+# Dataset and Checkpoints
+
+Find all of them at: [Dataset and Checkpoints](https://drive.google.com/drive/folders/1x4cwzqUWFCT_yP7NQogkQI9TtFsgXI7J?usp=sharing)

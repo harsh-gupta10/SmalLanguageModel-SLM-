@@ -1,4 +1,0 @@
-Do remember to git pull.
-
-Submitted batch job 2497060
-

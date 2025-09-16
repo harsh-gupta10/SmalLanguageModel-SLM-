@@ -4,34 +4,20 @@ import json
 import os
 import re
 
-# --------------------------
-# Configuration
-# --------------------------
-# --- 1. SET THE PATH TO YOUR HINDI TEXT FILE ---
-# The script will read this file line-by-line.
 CORPUS_PATH = "data/raw/lang_hindi.txt" 
 
-# --- 2. CONFIGURE OUTPUT DIRECTORY AND FILENAME ---
 BASE_DATA_DIR = os.path.join(os.getcwd(), "finetuning_hindi")
 SAVE_DATA_DIR = os.path.join(BASE_DATA_DIR, "data")
 OUTPUT_FILENAME = os.path.join(SAVE_DATA_DIR, "hindi_noun_verb_swap_dataset.json")
 
-# --- 3. SET THE NUMBER OF SAMPLES TO GENERATE ---
 NUM_SAMPLES_TO_GENERATE = 5000
 
-# Create the output directory if it doesn't exist
 os.makedirs(SAVE_DATA_DIR, exist_ok=True)
 
 
 def download_stanza_model():
-    """
-    Downloads the Stanza model for Hindi ('hi') if not already present.
-    Initializes and returns the Stanza pipeline for tokenization and POS tagging.
-    """
     print("Initializing Stanza pipeline for Hindi...")
     try:
-        # Check if model exists without trying to download it immediately
-        # Using download_method=None prevents redownloading if already present.
         return stanza.Pipeline('hi', processors='tokenize,pos', download_method=None)
     except Exception:
         print("Stanza model for Hindi not found. Downloading...")
@@ -39,16 +25,11 @@ def download_stanza_model():
         return stanza.Pipeline('hi', processors='tokenize,pos')
 
 def generate_dataset_from_stream(corpus_path, num_samples, nlp):
-    """
-    Generates a dataset by reading a large corpus file line-by-line to conserve memory.
-    It processes each line, swaps nouns and verbs in detected sentences, and collects the results.
-    """
     dataset = []
     processed_count = 0
 
     print(f"Starting dataset generation from {corpus_path}...")
     
-    # Open the file and read it line by line
     with open(corpus_path, 'r', encoding='utf-8') as f:
         for line in f:
             if processed_count >= num_samples:
@@ -59,15 +40,12 @@ def generate_dataset_from_stream(corpus_path, num_samples, nlp):
             if not line:
                 continue
 
-            # Process the line with Stanza to split it into sentences
             doc = nlp(line)
             
             for sentence in doc.sentences:
-                # Find all nouns (NOUN, PROPN) and verbs (VERB)
                 nouns = [word for word in sentence.words if word.upos in ["NOUN", "PROPN"]]
                 verbs = [word for word in sentence.words if word.upos == "VERB"]
 
-                # We need at least one of each to perform a swap
                 if not nouns or not verbs:
                     continue
                 

@@ -1,22 +1,15 @@
 import json
 import os
 import sys
-import textwrap # For better display of text
+import textwrap
 
-# Use the 'google.genai' library as per your example
 from google import genai
-from google.genai import types # Import types for Content, Part, etc.
+from google.genai import types
 
-# --- Configuration ---
 OUTPUT_FILE = "gemini_decontextualization_dataset.jsonl"
-MODEL_NAME = "gemini-2.5-flash" # As in your example, but this name is often internal or future.
-# Note: If you specifically want to use "gemini-pro" as your original error suggested,
-# you might need to check your project's region/permissions or use 'google.generativeai'.
-# However, this script is tailored to the `google.genai` client shown in your example.
+MODEL_NAME = "gemini-2.5-flash"
 
-# --- Gemini API Configuration ---
 def get_gemini_client() -> genai.Client:
-    """Configures the Gemini API client and returns it."""
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         print("GEMINI_API_KEY environment variable not found.", file=sys.stderr)
@@ -27,19 +20,12 @@ def get_gemini_client() -> genai.Client:
     
     try:
         client = genai.Client(api_key=api_key)
-        # Optional: Test a small generation to ensure API is working
-        # test_content = [types.Content(role="user", parts=[types.Part.from_text(text="hello")])]
-        # client.models.generate_content(model=MODEL_NAME, contents=test_content)
         return client
     except Exception as e:
         print(f"Error initializing Gemini client. Check your API key and network connection: {e}", file=sys.stderr)
         sys.exit(1)
 
-# --- Gemini Interaction Functions ---
 def generate_initial_sentences_with_gemini(client: genai.Client, topic: str, num_sentences: int = 10) -> list[str]:
-    """
-    Uses Gemini to generate a list of contextualized input sentences for the task.
-    """
     prompt = textwrap.dedent(f"""
     Generate {num_sentences} diverse, complex, and contextualized English sentences that contain explicit or implicit facts. These sentences should be suitable for a 'fact decontextualization' task where a standalone, atomic fact needs to be extracted. Focus on the topic of "{topic}".
 
@@ -75,10 +61,6 @@ def generate_initial_sentences_with_gemini(client: genai.Client, topic: str, num
         return []
 
 def generate_fact_with_gemini(client: genai.Client, sentence: str) -> str:
-    """
-    Uses Gemini to suggest a decontextualized fact for a given sentence.
-    Includes few-shot examples for better guidance.
-    """
     prompt = textwrap.dedent(f"""
     From the following sentence, extract a single, standalone, atomic fact. Resolve any pronouns and make sure the fact is understandable on its own. Ensure the fact is concise and directly stated or clearly implied.
 
@@ -113,17 +95,12 @@ def generate_fact_with_gemini(client: genai.Client, sentence: str) -> str:
         generated_text = response.text.strip()
         if generated_text.lower().startswith("fact:"):
             return generated_text[len("fact:"):].strip()
-        return generated_text.split('\n')[0].strip() # Take the first line if multiple are generated
+        return generated_text.split('\n')[0].strip()
     except Exception as e:
         print(f"Error calling Gemini for decontextualization: {e}", file=sys.stderr)
         return ""
 
-# --- Main Script Logic ---
 def generate_dataset_with_gemini_and_review(client: genai.Client, topic: str, num_sentences: int, output_file: str):
-    """
-    Generates the finetuning dataset using Gemini for both input generation
-    and decontextualization, with manual review.
-    """
     dataset = []
     print(f"\n--- Starting dataset generation for topic '{topic}' ---")
 
@@ -152,9 +129,9 @@ def generate_dataset_with_gemini_and_review(client: genai.Client, topic: str, nu
                     print("Fact cannot be empty. Please enter a fact.")
         elif review_choice == 'edit':
              decontextualized_fact = input(f"Edit fact [{suggested_fact}]: ").strip()
-             if not decontextualized_fact: # If user just pressed enter, use suggested
+             if not decontextualized_fact:
                  decontextualized_fact = suggested_fact
-        else: # Default to 'y' or empty input
+        else:
             decontextualized_fact = suggested_fact
 
         dataset.append({

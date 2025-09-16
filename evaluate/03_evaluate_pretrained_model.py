@@ -224,16 +224,16 @@ def main():
     print("Tokenizer loaded successfully.")
 
     # --- 2. Gather and Print Statistics ---
-    model_stats = get_model_statistics(model)
-    data_stats = get_data_and_tokenizer_statistics(tokenizer, DATA_DIR)
+    # model_stats = get_model_statistics(model)
+    # data_stats = get_data_and_tokenizer_statistics(tokenizer, DATA_DIR)
 
-    full_report = {
-        "Model Statistics": model_stats,
-        **data_stats
-    }
+    # full_report = {
+    #     "Model Statistics": model_stats,
+    #     **data_stats
+    # }
 
-    print("\n\n--- EVALUATION REPORT ---")
-    print(json.dumps(full_report, indent=2))
+    # print("\n\n--- EVALUATION REPORT ---")
+    # print(json.dumps(full_report, indent=2))
 
     # --- 3. Calculate Perplexity ---
     perplexity_results = calculate_perplexity(model, tokenizer, device)

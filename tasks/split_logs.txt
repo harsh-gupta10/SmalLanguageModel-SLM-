@@ -1,0 +1,29 @@
+Starting train-test split process...
+Ensured processed data directory exists at: /home/skills/ansh/dataset_gen/delme/ds_gen/data/processed
+
+--- Processing: English ---
+Reading lines from /home/skills/ansh/dataset_gen/delme/ds_gen/data/raw/lang_english.txt...
+Read 35,666,365 lines.
+Shuffling lines...
+Splitting into 35,309,702 training lines and 356,663 testing lines.
+Writing training file to: /home/skills/ansh/dataset_gen/delme/ds_gen/data/processed/train_english.txt
+Writing testing file to: /home/skills/ansh/dataset_gen/delme/ds_gen/data/processed/test_english.txt
+
+--- Processing: Hindi ---
+Reading lines from /home/skills/ansh/dataset_gen/delme/ds_gen/data/raw/lang_hindi.txt...
+Read 9,481,771 lines.
+Shuffling lines...
+Splitting into 9,386,954 training lines and 94,817 testing lines.
+Writing training file to: /home/skills/ansh/dataset_gen/delme/ds_gen/data/processed/train_hindi.txt
+Writing testing file to: /home/skills/ansh/dataset_gen/delme/ds_gen/data/processed/test_hindi.txt
+
+--- Processing: Sanskrit ---
+Reading lines from /home/skills/ansh/dataset_gen/delme/ds_gen/data/raw/lang_sanskrit.txt...
+Read 1,971,230 lines.
+Shuffling lines...
+Splitting into 1,951,518 training lines and 19,712 testing lines.
+Writing training file to: /home/skills/ansh/dataset_gen/delme/ds_gen/data/processed/train_sanskrit.txt
+Writing testing file to: /home/skills/ansh/dataset_gen/delme/ds_gen/data/processed/test_sanskrit.txt
+
+--- Train-test split process complete! ---
+Processed files are located in: /home/skills/ansh/dataset_gen/delme/ds_gen/data/processed
