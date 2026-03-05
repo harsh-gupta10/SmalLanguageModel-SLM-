@@ -1,7 +1,6 @@
 ## Language, Model and Agents Mini-Project
 
-`Name:` Ansh Chablani <br>
-`Roll No.:` 2022111031
+`Name:` Harsh Gupta <br>
 
 ## Specific Information
 
