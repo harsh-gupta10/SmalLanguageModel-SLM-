@@ -1,6 +1,6 @@
-Loading model from: /home/skills/ansh/dataset_gen/delme/ds_gen/model/checkpoints/pretrained/checkpoint-24000
+Loading model from: /home/skills/harsh/dataset_gen/delme/ds_gen/model/checkpoints/pretrained/checkpoint-24000
 Model loaded successfully.
-Loading tokenizer from: /home/skills/ansh/dataset_gen/delme/ds_gen/model/tokenizer
+Loading tokenizer from: /home/skills/harsh/dataset_gen/delme/ds_gen/model/tokenizer
 Tokenizer loaded successfully.
 
 --- Generating for English ---

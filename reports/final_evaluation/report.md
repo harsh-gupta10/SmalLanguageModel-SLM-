@@ -2,8 +2,7 @@
 
 ## Language, Model and Agents Mini-Project
 
-`Name:` Ansh Chablani <br>
-`Roll No.:` 2022111031
+`Name:` Harsh Gupta <br>
 
 ## Specific Information
 
@@ -500,11 +499,11 @@ Model Output: The than those and Elinoring in the end use, which all child in th
 ## Data and Tokenizer Statistics
 
 ```json
-Found train file for english: /home/skills/ansh/dataset_gen/delme/ds_gen/data/processed/train_english.txt
+Found train file for english: /home/skills/harsh/dataset_gen/delme/ds_gen/data/processed/train_english.txt
 Tokenizing train_english.txt: 35309702 lines [26:55, 21860.26 lines/s]
-Found train file for hindi: /home/skills/ansh/dataset_gen/delme/ds_gen/data/processed/train_hindi.txt
+Found train file for hindi: /home/skills/harsh/dataset_gen/delme/ds_gen/data/processed/train_hindi.txt
 Tokenizing train_hindi.txt: 9386954 lines [09:19, 16777.74 lines/s]
-Found train file for sanskrit: /home/skills/ansh/dataset_gen/delme/ds_gen/data/processed/train_sanskrit.txt
+Found train file for sanskrit: /home/skills/harsh/dataset_gen/delme/ds_gen/data/processed/train_sanskrit.txt
 Tokenizing train_sanskrit.txt: 1951518 lines [02:46, 11730.45 lines/s]
 
 
@@ -592,6 +591,6 @@ Cleaned Generated Text:
 
 Find all of them at: [Dataset and Checkpoints](https://drive.google.com/drive/folders/1x4cwzqUWFCT_yP7NQogkQI9TtFsgXI7J?usp=sharing)
 
-More at: [https://anshium.github.io/minimalist/projects/courses/lma/mini-project](https://anshium.github.io/minimalist/projects/courses/lma/mini-project)
+More at: [https://harshium.github.io/minimalist/projects/courses/lma/mini-project](https://harshium.github.io/minimalist/projects/courses/lma/mini-project)
 
 <hr>

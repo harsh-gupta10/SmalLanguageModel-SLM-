@@ -1,4 +1,4 @@
-(edmp) skills@enigma:~/ansh/dataset_gen/delme/ds_gen$ python3 tasks/04_finetune_model_task_2.py
+(edmp) skills@enigma:~/harsh/dataset_gen/delme/ds_gen$ python3 tasks/04_finetune_model_task_2.py
 /home/skills/miniconda3/envs/edmp/lib/python3.9/site-packages/requests/__init__.py:86: RequestsDependencyWarning: Unable to find acceptable character detection dependency (chardet or charset_normalizer).
   warnings.warn(
 Using device: cuda
